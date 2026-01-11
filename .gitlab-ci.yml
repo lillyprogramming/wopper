@@ -1,15 +1,10 @@
-stages:
-  - deploy
-
 pages:
   stage: deploy
-  image: alpine:latest
-  tags: ["docker"]
   script:
-    - echo "Deploying GitLab Pages from ./public"
-    - ls -la public
+    - mkdir -p public
+    - cp -R pages/. public/
   artifacts:
     paths:
       - public
-  rules:
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+  only:
+    - main
