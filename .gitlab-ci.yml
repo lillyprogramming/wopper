@@ -7,7 +7,7 @@ pages:
   tags: ["docker"]
   script:
     - echo "Deploying GitLab Pages from ./pages"
-    - ls -la public
+    - ls -la pages
   artifacts:
     paths:
       - pages
