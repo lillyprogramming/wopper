@@ -6,10 +6,10 @@ pages:
   image: alpine:latest
   tags: ["docker"]
   script:
-    - echo "Deploying GitLab Pages from ./pages"
-    - ls -la pages
+    - echo "Deploying GitLab Pages from ./public"
+    - ls -la public
   artifacts:
     paths:
-      - pages
+      - public
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
