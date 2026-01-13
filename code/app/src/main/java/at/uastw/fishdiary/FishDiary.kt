@@ -1,13 +1,13 @@
 package at.uastw.fishdiary
 
 import android.app.Application
-import at.uastw.fishdiary.data.FishRepository
-import at.uastw.fishdiary.db.FishesDatabase
+import at.uastw.fishdiary.data.RecipeRepository
+import at.uastw.fishdiary.db.RecipesDatabase
 
 class FishDiary : Application() {
-    val fishRepository by lazy {
+    val recipeRepository by lazy {
 
-        val fishesDao = FishesDatabase.getDatabase(this).fishesDao()
-        FishRepository(fishesDao)
+        val recipesDao = RecipesDatabase.getDatabase(this).recipesDao()
+        RecipeRepository(recipesDao)
     }
 }

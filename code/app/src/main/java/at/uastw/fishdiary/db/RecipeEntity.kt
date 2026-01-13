@@ -3,13 +3,13 @@ package at.uastw.fishdiary.db
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "fishes")
-data class FishEntity(
+@Entity(tableName = "recipes")
+data class RecipeEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
+    val mealType: String,
     val name: String,
-    val description: String,
-    val categories: String,
-    val hasSeen: Boolean,
-    val imagePath: String? = null
+    val imagePath: String? = null,
+    val totalTime: Int,
+    val difficulty: Int,
 )
