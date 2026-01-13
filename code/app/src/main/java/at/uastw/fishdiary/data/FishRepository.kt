@@ -8,7 +8,7 @@ class FishRepository(private val fishesDao: FishesDao) {
 
     val fishes = fishesDao.getAllFishes().map { fishList ->
         fishList.map { entity ->
-            Fish(
+            Recipe(
                 id = entity.id,
                 name = entity.name,
                 description = entity.description,
@@ -38,33 +38,33 @@ class FishRepository(private val fishesDao: FishesDao) {
         )
     }
 
-    suspend fun updateFish(fish: Fish) {
+    suspend fun updateFish(recipe: Recipe) {
         fishesDao.updateFish(
             FishEntity(
-                id = fish.id,
-                name = fish.name,
-                description = fish.description,
-                categories = fish.categories,
-                hasSeen = fish.hasSeen,
-                imagePath = fish.imagePath
+                id = recipe.id,
+                name = recipe.name,
+                description = recipe.description,
+                categories = recipe.categories,
+                hasSeen = recipe.hasSeen,
+                imagePath = recipe.imagePath
             )
         )
     }
 
-    suspend fun findFishById(fishId: Int): Fish {
+    suspend fun findFishById(fishId: Int): Recipe {
         val e = fishesDao.findFishById(fishId)
-        return Fish(e.id, e.name, e.description, e.categories, e.hasSeen, e.imagePath)
+        return Recipe(e.id, e.name, e.description, e.categories, e.hasSeen, e.imagePath)
     }
 
-    suspend fun deleteFish(fish: Fish) {
+    suspend fun deleteFish(recipe: Recipe) {
         fishesDao.deleteFish(
             FishEntity(
-                id = fish.id,
-                name = fish.name,
-                description = fish.description,
-                categories = fish.categories,
-                hasSeen = fish.hasSeen,
-                imagePath = fish.imagePath
+                id = recipe.id,
+                name = recipe.name,
+                description = recipe.description,
+                categories = recipe.categories,
+                hasSeen = recipe.hasSeen,
+                imagePath = recipe.imagePath
             )
         )
     }

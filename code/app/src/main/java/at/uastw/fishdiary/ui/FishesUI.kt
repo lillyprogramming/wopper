@@ -52,7 +52,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import at.uastw.fishdiary.data.Fish
+import at.uastw.fishdiary.data.Recipe
 import coil.compose.AsyncImage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -145,7 +145,7 @@ private fun FishDiaryHeader(
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = "Fish Diary",
+            text = "wopper",
             color = MaterialTheme.colorScheme.onPrimary,
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center
@@ -164,6 +164,7 @@ private fun FishDiaryHeader(
         }
     }
 }
+
 
 private suspend fun copyImageToInternalStorage(context: Context, uri: Uri): String? =
     withContext(Dispatchers.IO) {
@@ -188,9 +189,9 @@ private fun categoriesStringToSet(value: String): Set<String> =
 private fun categoriesSetToString(value: Set<String>): String =
     value.joinToString(", ")
 
-private fun fishMatchesAnySelectedCategory(fish: Fish, selected: Set<String>): Boolean {
+private fun fishMatchesAnySelectedCategory(recipe: Recipe, selected: Set<String>): Boolean {
     if (selected.isEmpty()) return true
-    val fishCats = categoriesStringToSet(fish.categories)
+    val fishCats = categoriesStringToSet(recipe.categories)
     return fishCats.any { it in selected }
 }
 
@@ -258,7 +259,7 @@ fun CategoriesMultiSelectDropdown(
 
 @Composable
 fun FishGridItem(
-    fish: Fish,
+    recipe: Recipe,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -268,12 +269,12 @@ fun FishGridItem(
         shape = RoundedCornerShape(18.dp)
     ) {
         Column(Modifier.padding(10.dp)) {
-            val path = fish.imagePath
+            val path = recipe.imagePath
 
             if (!path.isNullOrBlank()) {
                 AsyncImage(
                     model = File(path),
-                    contentDescription = fish.name,
+                    contentDescription = recipe.name,
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(1f)
@@ -295,7 +296,7 @@ fun FishGridItem(
             Spacer(Modifier.height(8.dp))
 
             Text(
-                text = fish.name,
+                text = recipe.name,
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center
@@ -351,7 +352,7 @@ fun CatalogueView(
             ) {
                 items(filtered) { fish ->
                     FishGridItem(
-                        fish = fish,
+                        recipe = fish,
                         onClick = { onFishClick(fish.id) }
                     )
                 }
@@ -475,7 +476,7 @@ fun CreateFishView(
 
 @Composable
 fun FishListItem(
-    fish: Fish,
+    recipe: Recipe,
     onCardClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -489,18 +490,18 @@ fun FishListItem(
             Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            val path = fish.imagePath
+            val path = recipe.imagePath
             if (!path.isNullOrBlank()) {
                 AsyncImage(
                     model = File(path),
-                    contentDescription = fish.name,
+                    contentDescription = recipe.name,
                     modifier = Modifier
                         .size(44.dp)
                         .clip(RoundedCornerShape(12.dp))
                 )
                 Spacer(Modifier.size(12.dp))
             }
-            Text(fish.name, style = MaterialTheme.typography.titleLarge)
+            Text(recipe.name, style = MaterialTheme.typography.titleLarge)
         }
     }
 }
@@ -514,9 +515,9 @@ fun FishDetailView(
     val state by fishDetailViewModel.fishDetailUiState.collectAsStateWithLifecycle()
 
     FishDetails(
-        fish = state.fish,
+        recipe = state.recipe,
         onBackClick = { navController.popBackStack() },
-        onEditClick = { onEdit(state.fish.id) },
+        onEditClick = { onEdit(state.recipe.id) },
         onDeleteClick = {
             fishDetailViewModel.onDeleteFish {
                 navController.navigate(Routes.Catalogue.route) {
@@ -530,7 +531,7 @@ fun FishDetailView(
 
 @Composable
 fun FishDetails(
-    fish: Fish,
+    recipe: Recipe,
     onDeleteClick: () -> Unit = {},
     onBackClick: () -> Unit = {},
     onEditClick: () -> Unit = {}
@@ -551,7 +552,7 @@ fun FishDetails(
             Column(Modifier.padding(18.dp)) {
 
                 Text(
-                    text = fish.name.uppercase(),
+                    text = recipe.name.uppercase(),
                     style = MaterialTheme.typography.headlineLarge,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth()
@@ -559,11 +560,11 @@ fun FishDetails(
 
                 Spacer(Modifier.height(14.dp))
 
-                val path = fish.imagePath
+                val path = recipe.imagePath
                 if (!path.isNullOrBlank()) {
                     AsyncImage(
                         model = File(path),
-                        contentDescription = fish.name,
+                        contentDescription = recipe.name,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(260.dp)
@@ -573,19 +574,19 @@ fun FishDetails(
                 }
 
                 Text("Description:", style = MaterialTheme.typography.titleMedium)
-                Text(fish.description)
+                Text(recipe.description)
 
                 Spacer(Modifier.height(12.dp))
 
                 Text("Categories:", style = MaterialTheme.typography.titleMedium)
-                Text(fish.categories)
+                Text(recipe.categories)
 
                 Spacer(Modifier.height(14.dp))
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("I have seen this fish:", style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.size(10.dp))
-                    Checkbox(checked = fish.hasSeen, onCheckedChange = null)
+                    Checkbox(checked = recipe.hasSeen, onCheckedChange = null)
                 }
 
                 Spacer(Modifier.height(16.dp))
@@ -614,8 +615,8 @@ fun FishEditView(
     val scope = rememberCoroutineScope()
 
     var pickedImageUri by remember { mutableStateOf<Uri?>(null) }
-    var selectedCategories by remember(state.fish.categories) {
-        mutableStateOf(categoriesStringToSet(state.fish.categories))
+    var selectedCategories by remember(state.recipe.categories) {
+        mutableStateOf(categoriesStringToSet(state.recipe.categories))
     }
 
     val picker = rememberLauncherForActivityResult(
@@ -634,7 +635,7 @@ fun FishEditView(
         Column(Modifier.padding(16.dp)) {
 
             OutlinedTextField(
-                value = state.fish.name,
+                value = state.recipe.name,
                 onValueChange = viewModel::updateName,
                 label = { Text("Name") },
                 modifier = Modifier.fillMaxWidth()
@@ -643,7 +644,7 @@ fun FishEditView(
             Spacer(Modifier.height(8.dp))
 
             OutlinedTextField(
-                value = state.fish.description,
+                value = state.recipe.description,
                 onValueChange = viewModel::updateDescription,
                 label = { Text("Description") },
                 modifier = Modifier.fillMaxWidth()
@@ -667,7 +668,7 @@ fun FishEditView(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("I have seen this fish:")
                 Spacer(Modifier.size(8.dp))
-                Checkbox(checked = state.fish.hasSeen, onCheckedChange = viewModel::updateHasSeen)
+                Checkbox(checked = state.recipe.hasSeen, onCheckedChange = viewModel::updateHasSeen)
             }
 
             Spacer(Modifier.height(10.dp))
@@ -680,7 +681,7 @@ fun FishEditView(
                     Text("Pick image")
                 }
 
-                val previewModel = pickedImageUri ?: state.fish.imagePath?.let { File(it) }
+                val previewModel = pickedImageUri ?: state.recipe.imagePath?.let { File(it) }
 
                 if (previewModel != null) {
                     AsyncImage(
