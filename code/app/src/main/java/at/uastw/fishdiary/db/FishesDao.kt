@@ -19,9 +19,9 @@ interface FishesDao {
     @Delete
     suspend fun deleteFish(fishEntity: FishEntity)
 
-    @Query("SELECT * FROM fishes WHERE id = :id")
+    @Query("SELECT * FROM Bob WHERE id = :id")
     suspend fun findFishById(id: Int): FishEntity
 
-    @Query("SELECT * FROM fishes")
+    @Query("SELECT * FROM Bob")
     fun getAllFishes(): Flow<List<FishEntity>>
 }
