@@ -21,6 +21,11 @@ import at.uastw.fishdiary.data.Instruction
 import at.uastw.fishdiary.data.Recipe
 import at.uastw.fishdiary.ui.recipes.RecipeDetailViewModel
 import at.uastw.fishdiary.ui.recipes.RecipesViewModel
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import coil.compose.AsyncImage
 
 enum class Routes(val route: String) {
     List("list"),
@@ -119,12 +124,26 @@ fun RecipesListView(
     var name by remember { mutableStateOf("") }
     var totalTime by remember { mutableStateOf("") }
     var difficulty by remember { mutableStateOf("") }
-
     var ingredientsText by remember { mutableStateOf("") }
     var instructionsText by remember { mutableStateOf("") }
+    var imagePath by remember { mutableStateOf<String?>(null) }
+
+    val context = LocalContext.current
+
+    val pickImageLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            context.contentResolver.takePersistableUriPermission(
+                uri,
+                android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+            imagePath = uri.toString()
+        }
+    }
 
     Column(
-        modifier.padding(16.dp),
+        modifier = modifier.padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text("Recipes", style = MaterialTheme.typography.headlineMedium)
@@ -137,12 +156,17 @@ fun RecipesListView(
             label = { Text("Name") },
             modifier = Modifier.fillMaxWidth()
         )
+
         MealTypeDropdown(
             mealType = mealType,
             onMealTypeChange = { mealType = it },
             modifier = Modifier.fillMaxWidth()
         )
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             OutlinedTextField(
                 value = totalTime,
                 onValueChange = { totalTime = it },
@@ -173,6 +197,41 @@ fun RecipesListView(
             minLines = 3
         )
 
+        Text("Image (optional)", style = MaterialTheme.typography.titleMedium)
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            OutlinedButton(
+                onClick = { pickImageLauncher.launch(arrayOf("image/*")) },
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Pick Image")
+            }
+
+            OutlinedButton(
+                onClick = { imagePath = null },
+                enabled = imagePath != null,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Remove")
+            }
+        }
+
+        if (imagePath != null) {
+            OutlinedCard(Modifier.fillMaxWidth()) {
+                AsyncImage(
+                    model = imagePath,
+                    contentDescription = "Selected recipe image",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(180.dp),
+                    contentScale = ContentScale.Crop
+                )
+            }
+        }
+
         Spacer(Modifier.height(8.dp))
 
         Button(
@@ -188,18 +247,20 @@ fun RecipesListView(
                 recipesViewModel.addRecipe(
                     mealType = mealType,
                     name = name,
-                    imagePath = null,
+                    imagePath = imagePath,
                     ingredients = ingredients,
                     instructions = instructions,
                     totalTime = total,
                     difficulty = diff
                 )
+
                 mealType = ""
                 name = ""
                 totalTime = ""
                 difficulty = ""
                 ingredientsText = ""
                 instructionsText = ""
+                imagePath = null
             },
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -218,6 +279,7 @@ fun RecipesListView(
         }
     }
 }
+
 
 @Composable
 fun RecipeListItem(
@@ -276,6 +338,21 @@ fun RecipeDetails(
             Text("${recipe.mealType} • ${recipe.totalTime} min • Difficulty ${recipe.difficulty}")
 
             Spacer(Modifier.height(16.dp))
+
+            if (!recipe.imagePath.isNullOrBlank()) {
+                OutlinedCard(Modifier.fillMaxWidth()) {
+                    AsyncImage(
+                        model = recipe.imagePath,
+                        contentDescription = "Recipe image",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(220.dp),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+                Spacer(Modifier.height(12.dp))
+            }
+
 
             Text("Ingredients:", style = MaterialTheme.typography.titleMedium)
             recipe.ingredients.forEach { ing ->
