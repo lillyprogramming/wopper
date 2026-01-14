@@ -27,6 +27,19 @@ enum class Routes(val route: String) {
     Detail("detail/{recipeId}")
 }
 
+private val mealTypeArr = listOf(
+    "Breakfast",
+    "Brunch",
+    "Lunch",
+    "Dinner",
+    "Dessert",
+    "Drinks",
+    "Salads",
+    "Side Dishes",
+    "Soups",
+    "Snacks"
+)
+
 @Composable
 fun FishDiaryApp(
     modifier: Modifier = Modifier,
@@ -48,6 +61,48 @@ fun FishDiaryApp(
             listOf(navArgument("recipeId") { type = NavType.IntType })
         ) {
             RecipeDetailView(navController = navController)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MealTypeDropdown(
+    mealType: String,
+    onMealTypeChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = modifier
+    ) {
+        OutlinedTextField(
+            value = mealType,
+            onValueChange = {}, // readOnly dropdown
+            readOnly = true,
+            label = { Text("Meal type") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth()
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            mealTypeArr.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option) },
+                    onClick = {
+                        onMealTypeChange(option)
+                        expanded = false
+                    }
+                )
+            }
         }
     }
 }
@@ -77,15 +132,14 @@ fun RecipesListView(
         Spacer(Modifier.height(8.dp))
 
         OutlinedTextField(
-            value = mealType,
-            onValueChange = { mealType = it },
-            label = { Text("Meal type") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        OutlinedTextField(
             value = name,
             onValueChange = { name = it },
             label = { Text("Name") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        MealTypeDropdown(
+            mealType = mealType,
+            onMealTypeChange = { mealType = it },
             modifier = Modifier.fillMaxWidth()
         )
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
