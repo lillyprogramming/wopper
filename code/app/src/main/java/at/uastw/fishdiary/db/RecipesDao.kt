@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.Flow
 interface RecipesDao {
 
     @Insert
-    suspend fun insertRecipe(recipe: RecipeEntity): Long  // returns new id
+    suspend fun insertRecipe(recipe: RecipeEntity): Long
 
     @Insert
     suspend fun insertIngredients(items: List<IngredientEntity>)

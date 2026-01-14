@@ -55,7 +55,8 @@ class RecipeRepository(private val recipesDao: RecipesDao) {
                 InstructionEntity(
                     recipeId = recipeId,
                     stepNumber = it.stepNumber,
-                    text = it.text
+                    text = it.text,
+                    timer = it.timer
                 )
             }
         )
