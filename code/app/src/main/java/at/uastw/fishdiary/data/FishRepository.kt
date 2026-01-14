@@ -8,12 +8,13 @@ class FishRepository(private val fishesDao: FishesDao) {
 
     val fishes = fishesDao.getAllFishes().map { fishList ->
         fishList.map { entity ->
-            Fish(
+            Recipe(
                 id = entity.id,
                 name = entity.name,
-                description = entity.description,
-                categories = entity.categories,
-                hasSeen = entity.hasSeen,
+                mealType = entity.mealType,
+                instructions = entity.instructions,
+                ingredients = entity.ingredients,
+                totalTime = entity.totalTime,
                 imagePath = entity.imagePath
             )
         }
@@ -21,50 +22,54 @@ class FishRepository(private val fishesDao: FishesDao) {
 
     suspend fun addFish(
         name: String,
-        description: String,
-        categories: String,
-        hasSeen: Boolean,
+        mealType: String,
+        instructions: String,
+        ingredients: String,
+        totalTime: Int,
         imagePath: String?
     ) {
         fishesDao.addFish(
             FishEntity(
                 id = 0,
                 name = name,
-                description = description,
-                categories = categories,
-                hasSeen = hasSeen,
+                mealType = mealType,
+                instructions = instructions,
+                ingredients = ingredients,
+                totalTime = totalTime,
                 imagePath = imagePath
             )
         )
     }
 
-    suspend fun updateFish(fish: Fish) {
+    suspend fun updateFish(recipe: Recipe) {
         fishesDao.updateFish(
             FishEntity(
-                id = fish.id,
-                name = fish.name,
-                description = fish.description,
-                categories = fish.categories,
-                hasSeen = fish.hasSeen,
-                imagePath = fish.imagePath
+                id = recipe.id,
+                name = recipe.name,
+                mealType = recipe.mealType,
+                instructions = recipe.instructions,
+                ingredients = recipe.ingredients,
+                totalTime = recipe.totalTime,
+                imagePath = recipe.imagePath,
             )
         )
     }
 
-    suspend fun findFishById(fishId: Int): Fish {
+    suspend fun findFishById(fishId: Int): Recipe {
         val e = fishesDao.findFishById(fishId)
-        return Fish(e.id, e.name, e.description, e.categories, e.hasSeen, e.imagePath)
+        return Recipe(e.id, e.name,e.mealType, e.instructions, e.ingredients, e.totalTime, e.imagePath)
     }
 
-    suspend fun deleteFish(fish: Fish) {
+    suspend fun deleteFish(recipe: Recipe) {
         fishesDao.deleteFish(
             FishEntity(
-                id = fish.id,
-                name = fish.name,
-                description = fish.description,
-                categories = fish.categories,
-                hasSeen = fish.hasSeen,
-                imagePath = fish.imagePath
+                id = recipe.id,
+                name = recipe.name,
+                mealType = recipe.mealType,
+                instructions = recipe.instructions,
+                ingredients = recipe.ingredients,
+                totalTime = recipe.totalTime,
+                imagePath = recipe.imagePath
             )
         )
     }

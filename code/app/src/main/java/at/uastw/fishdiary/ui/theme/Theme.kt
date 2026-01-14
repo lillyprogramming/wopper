@@ -8,19 +8,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val LightColorScheme = lightColorScheme(
-    primary = NavyHeader,
-    onPrimary = White,
+    primary = Color(0xFFB0D0D3),
+    onPrimary = Color(0xFFC08497),
 
     secondary = DeepBlue,
     onSecondary = White,
 
-    background = SkyBackground,
-    onBackground = Ink,
+    background = Color(0xFFF7AF9D),
+    onBackground = White,
 
-    surface = CardBlue,
-    onSurface = Ink,
+    surface = Color(0xFFF7AF9D),
+    onSurface = Color(0xFF000000),
 
-    outline = BorderBlue
+    outline = White,
 )
 
 private val DarkColorScheme = darkColorScheme(
