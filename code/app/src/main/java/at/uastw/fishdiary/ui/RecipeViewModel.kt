@@ -40,4 +40,28 @@ class RecipesViewModel(
             )
         }
     }
+
+    fun updateRecipe(
+        recipeId: Int,
+        mealType: String,
+        name: String,
+        imagePath: String?,
+        ingredients: List<Ingredient>,
+        instructions: List<Instruction>,
+        totalTime: Int,
+        difficulty: Int,
+    ) {
+        viewModelScope.launch {
+            repository.updateRecipe(
+                recipeId = recipeId,
+                mealType = mealType,
+                name = name,
+                imagePath = imagePath,
+                ingredients = ingredients,
+                instructions = instructions,
+                totalTime = totalTime,
+                difficulty = difficulty
+            )
+        }
+    }
 }
