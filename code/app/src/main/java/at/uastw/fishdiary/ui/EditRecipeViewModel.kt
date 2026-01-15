@@ -99,4 +99,13 @@ class RecipeEditViewModel(
         text.lines().map { it.trim() }.filter { it.isNotBlank() }.mapIndexed { idx, line ->
             Instruction(0, 0, idx + 1, line, 0)
         }
+
+    fun delete(onFinished: () -> Unit) {
+        val id = _uiState.value.recipeId
+        viewModelScope.launch {
+            repository.deleteRecipe(id)
+            onFinished()
+        }
+    }
+
 }

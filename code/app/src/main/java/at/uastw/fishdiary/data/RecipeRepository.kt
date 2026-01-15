@@ -83,8 +83,8 @@ class RecipeRepository(private val recipesDao: RecipesDao) {
         )
     }
 
-    suspend fun deleteRecipe(recipe: Recipe) {
-        recipesDao.deleteRecipe(RecipeEntity(recipe.id, recipe.mealType, recipe.categories, recipe.name, recipe.imagePath, recipe.totalTime, recipe.difficulty))
+    suspend fun deleteRecipe(id: Int) {
+        recipesDao.deleteById(id)
     }
 
     suspend fun updateRecipe(

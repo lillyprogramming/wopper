@@ -102,9 +102,27 @@ private val categoriesArr = listOf(
             composable(
                 Routes.Edit.route,
                 listOf(navArgument("recipeId") { type = NavType.IntType })
-            ) {
-                EditRecipeScreen(onFinished = { navController.popBackStack() })
+            ) { backStackEntry ->
+                val recipeId = backStackEntry.arguments?.getInt("recipeId") ?: 0
+
+                EditRecipeScreen(
+                    onSaved = {
+                        navController.navigate("detail/$recipeId") {
+                            popUpTo("detail/$recipeId") { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
+                    onDeleted = {
+                        navController.navigate(Routes.List.route) {
+                            // clear detail/edit from backstack so back won't return to deleted recipe
+                            popUpTo(Routes.List.route) { inclusive = false }
+                            launchSingleTop = true
+                        }
+                    }
+                )
             }
+
+
         }
     }
 
@@ -548,9 +566,10 @@ fun RecipeDetails(
 }
 
 @Composable
-fun EditRecipeScreen(
-    viewModel: RecipeEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
-    onFinished: () -> Unit
+    fun EditRecipeScreen(
+viewModel: RecipeEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
+onSaved: () -> Unit,
+onDeleted: () -> Unit
 ) {
     val ui by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -593,7 +612,7 @@ fun EditRecipeScreen(
         )
 
         ImagePickerField(
-            existingImagePath = ui.imagePath,     // existing persisted file path
+            existingImagePath = ui.imagePath,
             pickedImageUri = pickedImageUri,
             onPick = { pickedImageUri = it },
             onRemoveExisting = { viewModel.updateImagePath(null) },
@@ -606,13 +625,24 @@ fun EditRecipeScreen(
                     val newPath = pickedImageUri?.let { copyImageToInternalStorage(context, it) }
                     if (newPath != null) viewModel.updateImagePath(newPath)
 
-                    viewModel.save(onFinished)
+                    viewModel.save(onSaved)
                 }
             },
             modifier = Modifier.fillMaxWidth()
         ) { Text("Save Changes") }
 
-        OutlinedButton(onClick = onFinished, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
+        Button(
+            onClick = {
+                viewModel.delete(onDeleted)
+            },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.error,
+                contentColor = MaterialTheme.colorScheme.onError
+            )
+        ) { Text("Delete Recipe") }
+
+        OutlinedButton(onClick = onSaved, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
     }
 }
 
