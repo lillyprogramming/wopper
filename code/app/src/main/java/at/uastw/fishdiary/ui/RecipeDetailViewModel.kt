@@ -1,4 +1,4 @@
-package at.uastw.fishdiary.ui.recipes
+package at.uastw.fishdiary.ui
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -26,6 +26,7 @@ class RecipeDetailViewModel(
             Recipe(
                 id = 0,
                 mealType = "",
+                categories = "",
                 name = "",
                 imagePath = null,
                 ingredients = emptyList(),

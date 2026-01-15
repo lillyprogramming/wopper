@@ -5,8 +5,6 @@ import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import at.uastw.fishdiary.FishDiary
-import at.uastw.fishdiary.ui.recipes.RecipeDetailViewModel
-import at.uastw.fishdiary.ui.recipes.RecipesViewModel
 
 object AppViewModelProvider {
     val Factory = viewModelFactory {

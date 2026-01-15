@@ -10,6 +10,7 @@ class RecipeRepository(private val recipesDao: RecipesDao) {
             Recipe(
                 id = row.recipe.id,
                 mealType = row.recipe.mealType,
+                categories = row.recipe.categories,
                 name = row.recipe.name,
                 imagePath = row.recipe.imagePath,
                 ingredients = row.ingredients.map {
@@ -28,6 +29,7 @@ class RecipeRepository(private val recipesDao: RecipesDao) {
 
     suspend fun addRecipe(
         mealType: String,
+        categories: String,
         name: String,
         imagePath: String?,
         ingredients: List<Ingredient>,
@@ -36,7 +38,7 @@ class RecipeRepository(private val recipesDao: RecipesDao) {
         difficulty: Int,
     ) {
         val recipeId = recipesDao.insertRecipe(
-            RecipeEntity(mealType = mealType, name = name, imagePath = imagePath, totalTime = totalTime, difficulty = difficulty)
+            RecipeEntity(mealType = mealType, categories = categories, name = name, imagePath = imagePath, totalTime = totalTime, difficulty = difficulty)
         ).toInt()
 
         recipesDao.insertIngredients(
@@ -67,6 +69,7 @@ class RecipeRepository(private val recipesDao: RecipesDao) {
         return Recipe(
             id = row.recipe.id,
             mealType = row.recipe.mealType,
+            categories = row.recipe.categories,
             name = row.recipe.name,
             imagePath = row.recipe.imagePath,
             ingredients = row.ingredients.map {
@@ -81,6 +84,6 @@ class RecipeRepository(private val recipesDao: RecipesDao) {
     }
 
     suspend fun deleteRecipe(recipe: Recipe) {
-        recipesDao.deleteRecipe(RecipeEntity(recipe.id, recipe.mealType, recipe.name, recipe.imagePath, recipe.totalTime, recipe.difficulty))
+        recipesDao.deleteRecipe(RecipeEntity(recipe.id, recipe.mealType, recipe.categories, recipe.name, recipe.imagePath, recipe.totalTime, recipe.difficulty))
     }
 }

@@ -1,4 +1,4 @@
-package at.uastw.fishdiary.ui.recipes
+package at.uastw.fishdiary.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -20,8 +20,9 @@ class RecipesViewModel(
     )
 
     fun addRecipe(
-        mealType: String,
         name: String,
+        mealType: String,
+        categories: String,
         imagePath: String?,
         ingredients: List<Ingredient>,
         instructions: List<Instruction>,
@@ -30,8 +31,9 @@ class RecipesViewModel(
     ) {
         viewModelScope.launch {
             repository.addRecipe(
-                mealType = mealType,
                 name = name,
+                mealType = mealType,
+                categories = categories,
                 imagePath = imagePath,
                 ingredients = ingredients,
                 instructions = instructions,

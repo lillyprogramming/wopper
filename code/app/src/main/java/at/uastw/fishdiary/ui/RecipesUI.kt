@@ -19,8 +19,6 @@ import androidx.navigation.navArgument
 import at.uastw.fishdiary.data.Ingredient
 import at.uastw.fishdiary.data.Instruction
 import at.uastw.fishdiary.data.Recipe
-import at.uastw.fishdiary.ui.recipes.RecipeDetailViewModel
-import at.uastw.fishdiary.ui.recipes.RecipesViewModel
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.layout.ContentScale
@@ -44,6 +42,19 @@ private val mealTypeArr = listOf(
     "Soups",
     "Snacks"
 )
+
+private val categoriesArr = listOf(
+    "Fish",
+    "Seafood",
+    "Pasta",
+    "Healthy",
+    "Quick",
+    "Low Carb",
+    "Spicy",
+    "Kids",
+    "Vegetarian"
+)
+
 
 @Composable
 fun FishDiaryApp(
@@ -69,6 +80,40 @@ fun FishDiaryApp(
         }
     }
 }
+private fun parseCategoriesCsv(csv: String): List<String> =
+    csv.split(",")
+        .map { it.trim() }
+        .filter { it.isNotBlank() }
+
+@Composable
+private fun CategoriesChips(
+    categoriesCsv: String,
+    modifier: Modifier = Modifier,
+    title: String = "Categories:"
+) {
+    val categoriesList = remember(categoriesCsv) { parseCategoriesCsv(categoriesCsv) }
+
+    if (categoriesList.isEmpty()) return
+
+    Column(modifier) {
+        Text(title, style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(6.dp))
+
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            categoriesList.forEach { cat ->
+                AssistChip(
+                    onClick = {},
+                    label = { Text(cat) }
+                )
+            }
+        }
+    }
+}
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -111,6 +156,70 @@ private fun MealTypeDropdown(
         }
     }
 }
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CategoriesMultiDropdown(
+    selected: List<String>,
+    onSelectedChange: (List<String>) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    val selectedText = remember(selected) {
+        if (selected.isEmpty()) "" else selected.joinToString(", ")
+    }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = modifier
+    ) {
+        OutlinedTextField(
+            value = selectedText,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Categories") },
+            placeholder = { Text("Select categories") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier
+                .menuAnchor()
+                .fillMaxWidth()
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            categoriesArr.forEach { option ->
+                val isChecked = selected.contains(option)
+
+                DropdownMenuItem(
+                    text = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Checkbox(
+                                checked = isChecked,
+                                onCheckedChange = null
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(option)
+                        }
+                    },
+                    onClick = {
+                        val newSelected =
+                            if (isChecked) selected - option
+                            else selected + option
+
+                        onSelectedChange(newSelected)
+                    }
+                )
+            }
+        }
+    }
+}
+
 
 @Composable
 fun RecipesListView(
@@ -120,8 +229,9 @@ fun RecipesListView(
 ) {
     val recipes by recipesViewModel.recipesUiState.collectAsStateWithLifecycle()
 
-    var mealType by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
+    var mealType by remember { mutableStateOf("") }
+    var categories by remember { mutableStateOf<List<String>>(emptyList()) }
     var totalTime by remember { mutableStateOf("") }
     var difficulty by remember { mutableStateOf("") }
     var ingredientsText by remember { mutableStateOf("") }
@@ -142,143 +252,167 @@ fun RecipesListView(
         }
     }
 
-    Column(
-        modifier = modifier.padding(16.dp),
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Recipes", style = MaterialTheme.typography.headlineMedium)
+        item {
+            Text("Recipes", style = MaterialTheme.typography.headlineMedium)
+        }
 
-        Spacer(Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = name,
-            onValueChange = { name = it },
-            label = { Text("Name") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        MealTypeDropdown(
-            mealType = mealType,
-            onMealTypeChange = { mealType = it },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
+        item {
             OutlinedTextField(
-                value = totalTime,
-                onValueChange = { totalTime = it },
-                label = { Text("Total time (min)") },
-                modifier = Modifier.weight(1f)
-            )
-            OutlinedTextField(
-                value = difficulty,
-                onValueChange = { difficulty = it },
-                label = { Text("Difficulty (1-5)") },
-                modifier = Modifier.weight(1f)
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Name") },
+                modifier = Modifier.fillMaxWidth()
             )
         }
 
-        OutlinedTextField(
-            value = ingredientsText,
-            onValueChange = { ingredientsText = it },
-            label = { Text("Ingredients (one per line)") },
-            modifier = Modifier.fillMaxWidth(),
-            minLines = 3
-        )
+        item {
+            MealTypeDropdown(
+                mealType = mealType,
+                onMealTypeChange = { mealType = it },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
 
-        OutlinedTextField(
-            value = instructionsText,
-            onValueChange = { instructionsText = it },
-            label = { Text("Instructions (one step per line)") },
-            modifier = Modifier.fillMaxWidth(),
-            minLines = 3
-        )
+        item {
+            CategoriesMultiDropdown(
+                selected = categories,
+                onSelectedChange = { categories = it },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
 
-        Text("Image (optional)", style = MaterialTheme.typography.titleMedium)
-
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            OutlinedButton(
-                onClick = { pickImageLauncher.launch(arrayOf("image/*")) },
-                modifier = Modifier.weight(1f)
+        item {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text("Pick Image")
+                OutlinedTextField(
+                    value = totalTime,
+                    onValueChange = { totalTime = it },
+                    label = { Text("Total time (min)") },
+                    modifier = Modifier.weight(1f)
+                )
+                OutlinedTextField(
+                    value = difficulty,
+                    onValueChange = { difficulty = it },
+                    label = { Text("Difficulty (1-5)") },
+                    modifier = Modifier.weight(1f)
+                )
             }
+        }
 
-            OutlinedButton(
-                onClick = { imagePath = null },
-                enabled = imagePath != null,
-                modifier = Modifier.weight(1f)
+        item {
+            OutlinedTextField(
+                value = ingredientsText,
+                onValueChange = { ingredientsText = it },
+                label = { Text("Ingredients (one per line)") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 3
+            )
+        }
+
+        item {
+            OutlinedTextField(
+                value = instructionsText,
+                onValueChange = { instructionsText = it },
+                label = { Text("Instructions (one step per line)") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 3
+            )
+        }
+
+        item {
+            Text("Image (optional)", style = MaterialTheme.typography.titleMedium)
+        }
+
+        item {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Remove")
+                OutlinedButton(
+                    onClick = { pickImageLauncher.launch(arrayOf("image/*")) },
+                    modifier = Modifier.weight(1f)
+                ) { Text("Pick Image") }
+
+                OutlinedButton(
+                    onClick = { imagePath = null },
+                    enabled = imagePath != null,
+                    modifier = Modifier.weight(1f)
+                ) { Text("Remove") }
             }
         }
 
         if (imagePath != null) {
-            OutlinedCard(Modifier.fillMaxWidth()) {
-                AsyncImage(
-                    model = imagePath,
-                    contentDescription = "Selected recipe image",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp),
-                    contentScale = ContentScale.Crop
-                )
+            item {
+                OutlinedCard(Modifier.fillMaxWidth()) {
+                    AsyncImage(
+                        model = imagePath,
+                        contentDescription = "Selected recipe image",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(180.dp),
+                        contentScale = ContentScale.Crop
+                    )
+                }
             }
         }
 
-        Spacer(Modifier.height(8.dp))
+        item {
+            Button(
+                onClick = {
+                    if (mealType.isBlank() || name.isBlank()) return@Button
 
-        Button(
-            onClick = {
-                if (mealType.isBlank() || name.isBlank()) return@Button
+                    val total = totalTime.toIntOrNull() ?: 0
+                    val diff = difficulty.toIntOrNull() ?: 1
 
-                val total = totalTime.toIntOrNull() ?: 0
-                val diff = difficulty.toIntOrNull() ?: 1
+                    val ingredients = parseIngredientsLines(ingredientsText)
+                    val instructions = parseInstructionsLines(instructionsText)
 
-                val ingredients = parseIngredientsLines(ingredientsText)
-                val instructions = parseInstructionsLines(instructionsText)
+                    recipesViewModel.addRecipe(
+                        mealType = mealType,
+                        categories = categories.joinToString(","),
+                        name = name,
+                        imagePath = imagePath,
+                        ingredients = ingredients,
+                        instructions = instructions,
+                        totalTime = total,
+                        difficulty = diff
+                    )
 
-                recipesViewModel.addRecipe(
-                    mealType = mealType,
-                    name = name,
-                    imagePath = imagePath,
-                    ingredients = ingredients,
-                    instructions = instructions,
-                    totalTime = total,
-                    difficulty = diff
-                )
-
-                mealType = ""
-                name = ""
-                totalTime = ""
-                difficulty = ""
-                ingredientsText = ""
-                instructionsText = ""
-                imagePath = null
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Create Recipe")
+                    mealType = ""
+                    name = ""
+                    categories = emptyList()
+                    totalTime = ""
+                    difficulty = ""
+                    ingredientsText = ""
+                    instructionsText = ""
+                    imagePath = null
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Create Recipe") }
         }
 
-        Spacer(Modifier.height(16.dp))
+        item { Spacer(Modifier.height(8.dp)) }
 
-        LazyColumn {
-            itemsIndexed(recipes) { _, recipe ->
-                RecipeListItem(
-                    recipe = recipe,
-                    onCardClick = { onRecipeClick(recipe.id) }
-                )
-            }
+        itemsIndexed(recipes) { _, recipe ->
+            RecipeListItem(
+                recipe = recipe,
+                onCardClick = { onRecipeClick(recipe.id) }
+            )
         }
+
+        item { Spacer(Modifier.height(24.dp)) }
     }
 }
+
 
 
 @Composable
@@ -296,7 +430,11 @@ fun RecipeListItem(
         Column(Modifier.padding(16.dp)) {
             Text(recipe.name, style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(4.dp))
-            Text("${recipe.mealType} • ${recipe.totalTime} min • Diff ${recipe.difficulty}")
+            Text("${recipe.mealType} • ${recipe.totalTime} min • Difficulty ${recipe.difficulty}")
+
+            Spacer(Modifier.height(10.dp))
+            CategoriesChips(categoriesCsv = recipe.categories)
+
         }
     }
 }
@@ -336,6 +474,8 @@ fun RecipeDetails(
             Text(recipe.name, style = MaterialTheme.typography.headlineLarge)
             Spacer(Modifier.height(8.dp))
             Text("${recipe.mealType} • ${recipe.totalTime} min • Difficulty ${recipe.difficulty}")
+            Spacer(Modifier.height(10.dp))
+            CategoriesChips(categoriesCsv = recipe.categories)
 
             Spacer(Modifier.height(16.dp))
 
