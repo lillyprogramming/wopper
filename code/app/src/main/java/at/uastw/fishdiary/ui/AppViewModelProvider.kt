@@ -16,5 +16,15 @@ object AppViewModelProvider {
             val app = this[APPLICATION_KEY] as FishDiary
             RecipeDetailViewModel(this.createSavedStateHandle(), app.recipeRepository)
         }
+        initializer {
+            val app = this[APPLICATION_KEY] as FishDiary
+            RecipeEditViewModel(this.createSavedStateHandle(), app.recipeRepository)
+        }
+        initializer {
+            val app = this[APPLICATION_KEY] as FishDiary
+            AddRecipeViewModel(app.recipeRepository)
+        }
     }
 }
+
+

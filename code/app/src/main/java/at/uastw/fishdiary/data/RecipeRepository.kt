@@ -86,4 +86,54 @@ class RecipeRepository(private val recipesDao: RecipesDao) {
     suspend fun deleteRecipe(recipe: Recipe) {
         recipesDao.deleteRecipe(RecipeEntity(recipe.id, recipe.mealType, recipe.categories, recipe.name, recipe.imagePath, recipe.totalTime, recipe.difficulty))
     }
+
+    suspend fun updateRecipe(
+        id: Int,
+        mealType: String,
+        categories: String,
+        name: String,
+        imagePath: String?,
+        ingredients: List<Ingredient>,
+        instructions: List<Instruction>,
+        totalTime: Int,
+        difficulty: Int
+    ) {
+        recipesDao.updateRecipe(
+            RecipeEntity(
+                id = id,
+                mealType = mealType,
+                categories = categories,
+                name = name,
+                imagePath = imagePath,
+                totalTime = totalTime,
+                difficulty = difficulty
+            )
+        )
+
+        recipesDao.deleteIngredientsByRecipeId(id)
+        recipesDao.deleteInstructionsByRecipeId(id)
+
+        recipesDao.insertIngredients(
+            ingredients.map {
+                IngredientEntity(
+                    recipeId = id,
+                    name = it.name,
+                    amount = it.amount,
+                    unit = it.unit
+                )
+            }
+        )
+
+        recipesDao.insertInstructions(
+            instructions.map {
+                InstructionEntity(
+                    recipeId = id,
+                    stepNumber = it.stepNumber,
+                    text = it.text,
+                    timer = it.timer
+                )
+            }
+        )
+    }
+
 }

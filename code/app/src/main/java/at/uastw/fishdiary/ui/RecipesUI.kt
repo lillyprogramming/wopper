@@ -20,14 +20,29 @@ import at.uastw.fishdiary.data.Ingredient
 import at.uastw.fishdiary.data.Instruction
 import at.uastw.fishdiary.data.Recipe
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import coil.compose.AsyncImage
+import android.net.Uri
+import java.io.File
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.rememberLauncherForActivityResult
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
+import androidx.activity.result.PickVisualMediaRequest
+import android.content.Context
+import androidx.compose.ui.platform.LocalContext
+import java.io.FileOutputStream
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
 
 enum class Routes(val route: String) {
     List("list"),
-    Detail("detail/{recipeId}")
+    Create("create"),
+    Detail("detail/{recipeId}"),
+    Edit("edit/{recipeId}")
 }
 
 private val mealTypeArr = listOf(
@@ -56,34 +71,128 @@ private val categoriesArr = listOf(
 )
 
 
-@Composable
-fun FishDiaryApp(
-    modifier: Modifier = Modifier,
-    navController: NavHostController = rememberNavController()
-) {
-    NavHost(
-        navController = navController,
-        modifier = modifier,
-        startDestination = Routes.List.route
+    @Composable
+    fun FishDiaryApp(
+        modifier: Modifier = Modifier,
+        navController: NavHostController = rememberNavController()
     ) {
-        composable(Routes.List.route) {
-            RecipesListView { recipeId ->
-                navController.navigate("detail/$recipeId")
+        NavHost(navController = navController, modifier = modifier, startDestination = Routes.List.route) {
+
+            composable(Routes.List.route) {
+                RecipesHomeScreen(
+                    onRecipeClick = { id -> navController.navigate("detail/$id") },
+                    onAddClick = { navController.navigate(Routes.Create.route) }
+                )
+            }
+
+            composable(Routes.Create.route) {
+                CreateRecipeScreen(onFinished = { navController.popBackStack() })
+            }
+
+            composable(
+                Routes.Detail.route,
+                listOf(navArgument("recipeId") { type = NavType.IntType })
+            ) {
+                RecipeDetailView(
+                    navController = navController,
+                    onEditClick = { id -> navController.navigate("edit/$id") }
+                )
+            }
+
+            composable(
+                Routes.Edit.route,
+                listOf(navArgument("recipeId") { type = NavType.IntType })
+            ) {
+                EditRecipeScreen(onFinished = { navController.popBackStack() })
             }
         }
-
-        composable(
-            Routes.Detail.route,
-            listOf(navArgument("recipeId") { type = NavType.IntType })
-        ) {
-            RecipeDetailView(navController = navController)
-        }
     }
-}
+
 private fun parseCategoriesCsv(csv: String): List<String> =
     csv.split(",")
         .map { it.trim() }
         .filter { it.isNotBlank() }
+
+private suspend fun copyImageToInternalStorage(context: Context, uri: Uri): String? =
+    withContext(Dispatchers.IO) {
+        try {
+            val input = context.contentResolver.openInputStream(uri) ?: return@withContext null
+            val dir = File(context.filesDir, "recipe_images").apply { mkdirs() }
+            val outFile = File(dir, "img_${System.currentTimeMillis()}.jpg")
+            FileOutputStream(outFile).use { output ->
+                input.use { it.copyTo(output) }
+            }
+            outFile.absolutePath
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+
+@Composable
+fun ImagePickerField(
+    label: String = "Image (optional)",
+    existingImagePath: String?,
+    pickedImageUri: Uri?,
+    onPick: (Uri?) -> Unit,
+    onRemoveExisting: (() -> Unit)? = null,
+    modifier: Modifier = Modifier
+) {
+    val pickImageLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        onPick(uri)
+    }
+
+    Column(modifier) {
+        Text(label, style = MaterialTheme.typography.titleMedium)
+
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedButton(
+                onClick = {
+                    pickImageLauncher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                },
+                modifier = Modifier.weight(1f)
+            ) { Text(if (pickedImageUri == null) "Pick Image" else "Change") }
+
+            OutlinedButton(
+                onClick = {
+                    onPick(null)
+                    onRemoveExisting?.invoke()
+                },
+                enabled = pickedImageUri != null || (existingImagePath != null && onRemoveExisting != null),
+                modifier = Modifier.weight(1f)
+            ) { Text("Remove") }
+        }
+
+        val previewModel = when {
+            pickedImageUri != null -> pickedImageUri
+            !existingImagePath.isNullOrBlank() -> File(existingImagePath)
+            else -> null
+        }
+
+        if (previewModel != null) {
+            Spacer(Modifier.height(8.dp))
+            OutlinedCard(Modifier.fillMaxWidth()) {
+                AsyncImage(
+                    model = previewModel,
+                    contentDescription = "Selected image",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp),
+                    contentScale = ContentScale.Crop
+                )
+            }
+        }
+    }
+}
+
+
 
 @Composable
 private fun CategoriesChips(
@@ -220,14 +329,43 @@ private fun CategoriesMultiDropdown(
     }
 }
 
-
 @Composable
-fun RecipesListView(
-    modifier: Modifier = Modifier,
+fun RecipesHomeScreen(
     recipesViewModel: RecipesViewModel = viewModel(factory = AppViewModelProvider.Factory),
-    onRecipeClick: (Int) -> Unit
+    onRecipeClick: (Int) -> Unit,
+    onAddClick: () -> Unit
 ) {
     val recipes by recipesViewModel.recipesUiState.collectAsStateWithLifecycle()
+
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(onClick = onAddClick) {
+                Text("+")
+            }
+        }
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            itemsIndexed(recipes) { _, recipe ->
+                RecipeListItem(recipe = recipe, onCardClick = { onRecipeClick(recipe.id) })
+            }
+        }
+    }
+}
+
+
+@Composable
+fun CreateRecipeScreen(
+    addRecipeViewModel: AddRecipeViewModel = viewModel(factory = AppViewModelProvider.Factory),
+    onFinished: () -> Unit
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     var name by remember { mutableStateOf("") }
     var mealType by remember { mutableStateOf("") }
@@ -236,183 +374,82 @@ fun RecipesListView(
     var difficulty by remember { mutableStateOf("") }
     var ingredientsText by remember { mutableStateOf("") }
     var instructionsText by remember { mutableStateOf("") }
-    var imagePath by remember { mutableStateOf<String?>(null) }
 
-    val context = LocalContext.current
+    // keep picked uri separate; save file path on Save
+    var pickedImageUri by remember { mutableStateOf<Uri?>(null) }
 
-    val pickImageLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        if (uri != null) {
-            context.contentResolver.takePersistableUriPermission(
-                uri,
-                android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
-            )
-            imagePath = uri.toString()
-        }
-    }
-
-    LazyColumn(
-        modifier = modifier
+    Column(
+        Modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        item {
-            Text("Recipes", style = MaterialTheme.typography.headlineMedium)
+        Text("Create Recipe", style = MaterialTheme.typography.headlineMedium)
+
+        OutlinedTextField(name, { name = it }, label = { Text("Name") }, modifier = Modifier.fillMaxWidth())
+        MealTypeDropdown(mealType, { mealType = it }, Modifier.fillMaxWidth())
+        CategoriesMultiDropdown(categories, { categories = it }, Modifier.fillMaxWidth())
+
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedTextField(totalTime, { totalTime = it }, label = { Text("Total time (min)") }, modifier = Modifier.weight(1f))
+            OutlinedTextField(difficulty, { difficulty = it }, label = { Text("Difficulty (1-5)") }, modifier = Modifier.weight(1f))
         }
 
-        item {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("Name") },
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+        OutlinedTextField(
+            value = ingredientsText,
+            onValueChange = { ingredientsText = it },
+            label = { Text("Ingredients (one per line)") },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 3
+        )
 
-        item {
-            MealTypeDropdown(
-                mealType = mealType,
-                onMealTypeChange = { mealType = it },
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+        OutlinedTextField(
+            value = instructionsText,
+            onValueChange = { instructionsText = it },
+            label = { Text("Instructions (one step per line)") },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 3
+        )
 
-        item {
-            CategoriesMultiDropdown(
-                selected = categories,
-                onSelectedChange = { categories = it },
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
+        ImagePickerField(
+            existingImagePath = null,
+            pickedImageUri = pickedImageUri,
+            onPick = { pickedImageUri = it },
+            modifier = Modifier.fillMaxWidth()
+        )
 
-        item {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                OutlinedTextField(
-                    value = totalTime,
-                    onValueChange = { totalTime = it },
-                    label = { Text("Total time (min)") },
-                    modifier = Modifier.weight(1f)
-                )
-                OutlinedTextField(
-                    value = difficulty,
-                    onValueChange = { difficulty = it },
-                    label = { Text("Difficulty (1-5)") },
-                    modifier = Modifier.weight(1f)
-                )
-            }
-        }
+        Button(
+            onClick = {
+                if (mealType.isBlank() || name.isBlank()) return@Button
 
-        item {
-            OutlinedTextField(
-                value = ingredientsText,
-                onValueChange = { ingredientsText = it },
-                label = { Text("Ingredients (one per line)") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 3
-            )
-        }
+                val total = totalTime.toIntOrNull() ?: 0
+                val diff = difficulty.toIntOrNull() ?: 1
+                val ingredients = parseIngredientsLines(ingredientsText)
+                val instructions = parseInstructionsLines(instructionsText)
 
-        item {
-            OutlinedTextField(
-                value = instructionsText,
-                onValueChange = { instructionsText = it },
-                label = { Text("Instructions (one step per line)") },
-                modifier = Modifier.fillMaxWidth(),
-                minLines = 3
-            )
-        }
+                scope.launch {
+                    val savedPath = pickedImageUri?.let { copyImageToInternalStorage(context, it) }
 
-        item {
-            Text("Image (optional)", style = MaterialTheme.typography.titleMedium)
-        }
-
-        item {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                OutlinedButton(
-                    onClick = { pickImageLauncher.launch(arrayOf("image/*")) },
-                    modifier = Modifier.weight(1f)
-                ) { Text("Pick Image") }
-
-                OutlinedButton(
-                    onClick = { imagePath = null },
-                    enabled = imagePath != null,
-                    modifier = Modifier.weight(1f)
-                ) { Text("Remove") }
-            }
-        }
-
-        if (imagePath != null) {
-            item {
-                OutlinedCard(Modifier.fillMaxWidth()) {
-                    AsyncImage(
-                        model = imagePath,
-                        contentDescription = "Selected recipe image",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(180.dp),
-                        contentScale = ContentScale.Crop
-                    )
-                }
-            }
-        }
-
-        item {
-            Button(
-                onClick = {
-                    if (mealType.isBlank() || name.isBlank()) return@Button
-
-                    val total = totalTime.toIntOrNull() ?: 0
-                    val diff = difficulty.toIntOrNull() ?: 1
-
-                    val ingredients = parseIngredientsLines(ingredientsText)
-                    val instructions = parseInstructionsLines(instructionsText)
-
-                    recipesViewModel.addRecipe(
+                    addRecipeViewModel.addRecipe(
+                        name = name,
                         mealType = mealType,
                         categories = categories.joinToString(","),
-                        name = name,
-                        imagePath = imagePath,
+                        imagePath = savedPath,              // <-- persisted file path
                         ingredients = ingredients,
                         instructions = instructions,
                         totalTime = total,
                         difficulty = diff
                     )
+                    onFinished()
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Save") }
 
-                    mealType = ""
-                    name = ""
-                    categories = emptyList()
-                    totalTime = ""
-                    difficulty = ""
-                    ingredientsText = ""
-                    instructionsText = ""
-                    imagePath = null
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Create Recipe") }
-        }
-
-        item { Spacer(Modifier.height(8.dp)) }
-
-        itemsIndexed(recipes) { _, recipe ->
-            RecipeListItem(
-                recipe = recipe,
-                onCardClick = { onRecipeClick(recipe.id) }
-            )
-        }
-
-        item { Spacer(Modifier.height(24.dp)) }
+        OutlinedButton(onClick = onFinished, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
     }
 }
-
 
 
 @Composable
@@ -442,38 +479,34 @@ fun RecipeListItem(
 @Composable
 fun RecipeDetailView(
     recipeDetailViewModel: RecipeDetailViewModel = viewModel(factory = AppViewModelProvider.Factory),
-    navController: NavHostController? = null
+    navController: NavHostController? = null,
+    onEditClick: (Int) -> Unit
 ) {
     val state by recipeDetailViewModel.recipeDetailUiState.collectAsStateWithLifecycle()
 
     RecipeDetails(
         recipe = state.recipe,
         onBackClick = { navController?.popBackStack() },
-        onDeleteClick = {
-            recipeDetailViewModel.onDeleteRecipe {
-                navController?.popBackStack()
-            }
-        }
+        onEditClick = { onEditClick(state.recipe.id) }
     )
 }
+
 
 @Composable
 fun RecipeDetails(
     recipe: Recipe,
-    onDeleteClick: () -> Unit = {},
+    onEditClick: () -> Unit = {},
     onBackClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     OutlinedCard(
-        modifier
-            .fillMaxWidth()
-            .padding(16.dp)
+        modifier.fillMaxWidth().padding(16.dp)
     ) {
-        Column(Modifier.padding(20.dp)) {
-
+        Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState())) {
             Text(recipe.name, style = MaterialTheme.typography.headlineLarge)
             Spacer(Modifier.height(8.dp))
             Text("${recipe.mealType} • ${recipe.totalTime} min • Difficulty ${recipe.difficulty}")
+
             Spacer(Modifier.height(10.dp))
             CategoriesChips(categoriesCsv = recipe.categories)
 
@@ -484,15 +517,12 @@ fun RecipeDetails(
                     AsyncImage(
                         model = recipe.imagePath,
                         contentDescription = "Recipe image",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(220.dp),
+                        modifier = Modifier.fillMaxWidth().height(220.dp),
                         contentScale = ContentScale.Crop
                     )
                 }
                 Spacer(Modifier.height(12.dp))
             }
-
 
             Text("Ingredients:", style = MaterialTheme.typography.titleMedium)
             recipe.ingredients.forEach { ing ->
@@ -510,20 +540,84 @@ fun RecipeDetails(
 
             Spacer(Modifier.height(20.dp))
 
-            Button(
-                onClick = onBackClick,
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Go Back") }
-
+            Button(onClick = onBackClick, modifier = Modifier.fillMaxWidth()) { Text("Go Back") }
             Spacer(Modifier.height(12.dp))
-
-            Button(
-                onClick = onDeleteClick,
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Delete Recipe") }
+            Button(onClick = onEditClick, modifier = Modifier.fillMaxWidth()) { Text("Edit Recipe") }
         }
     }
 }
+
+@Composable
+fun EditRecipeScreen(
+    viewModel: RecipeEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
+    onFinished: () -> Unit
+) {
+    val ui by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    var pickedImageUri by remember { mutableStateOf<Uri?>(null) }
+
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text("Edit Recipe", style = MaterialTheme.typography.headlineMedium)
+
+        OutlinedTextField(ui.name, viewModel::updateName, label = { Text("Name") }, modifier = Modifier.fillMaxWidth())
+        MealTypeDropdown(ui.mealType, viewModel::updateMealType, Modifier.fillMaxWidth())
+        CategoriesMultiDropdown(ui.categories, viewModel::updateCategories, Modifier.fillMaxWidth())
+
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedTextField(ui.totalTime, viewModel::updateTotalTime, label = { Text("Total time (min)") }, modifier = Modifier.weight(1f))
+            OutlinedTextField(ui.difficulty, viewModel::updateDifficulty, label = { Text("Difficulty (1-5)") }, modifier = Modifier.weight(1f))
+        }
+
+        OutlinedTextField(
+            value = ui.ingredientsText,
+            onValueChange = viewModel::updateIngredientsText,
+            label = { Text("Ingredients (one per line)") },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 3
+        )
+
+        OutlinedTextField(
+            value = ui.instructionsText,
+            onValueChange = viewModel::updateInstructionsText,
+            label = { Text("Instructions (one step per line)") },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 3
+        )
+
+        ImagePickerField(
+            existingImagePath = ui.imagePath,     // existing persisted file path
+            pickedImageUri = pickedImageUri,
+            onPick = { pickedImageUri = it },
+            onRemoveExisting = { viewModel.updateImagePath(null) },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Button(
+            onClick = {
+                scope.launch {
+                    val newPath = pickedImageUri?.let { copyImageToInternalStorage(context, it) }
+                    if (newPath != null) viewModel.updateImagePath(newPath)
+
+                    viewModel.save(onFinished)
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Save Changes") }
+
+        OutlinedButton(onClick = onFinished, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
+    }
+}
+
+
+
 private fun parseIngredientsLines(text: String): List<Ingredient> {
     return text
         .lines()
