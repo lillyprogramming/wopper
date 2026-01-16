@@ -587,9 +587,6 @@ fun CreateRecipeScreen(
     addRecipeViewModel: AddRecipeViewModel = viewModel(factory = AppViewModelProvider.Factory),
     onFinished: () -> Unit
 ) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-
     var name by remember { mutableStateOf("") }
     var mealType by remember { mutableStateOf("") }
     var categories by remember { mutableStateOf<List<String>>(emptyList()) }
@@ -598,6 +595,9 @@ fun CreateRecipeScreen(
     val ingredients = remember { mutableStateListOf<IngredientDraft>() }
     val instructions = remember { mutableStateListOf<InstructionDraft>() }
     var notes by remember { mutableStateOf("") }
+
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     var pickedImageUri by remember { mutableStateOf<Uri?>(null) }
 
@@ -633,6 +633,7 @@ fun CreateRecipeScreen(
             modifier = Modifier.fillMaxWidth()
         )
         OutlinedTextField(notes, { notes = it }, label = { Text("Notes (Optional)") }, modifier = Modifier.fillMaxWidth())
+
         ImagePickerField(
             existingImagePath = null,
             pickedImageUri = pickedImageUri,
@@ -801,7 +802,7 @@ onDeleted: () -> Unit
     val ingredients = remember { mutableStateListOf<IngredientDraft>() }
     val instructions = remember { mutableStateListOf<InstructionDraft>() }
 
-    LaunchedEffect(ui.recipeId) {
+    LaunchedEffect(ui.ingredientsText, ui.instructionsText) {
         ingredients.clear()
         instructions.clear()
 
@@ -811,7 +812,11 @@ onDeleted: () -> Unit
                 val parts = line.split(" ").filter { it.isNotBlank() }
                 if (parts.size >= 3) {
                     ingredients.add(
-                        IngredientDraft(amount = parts[0], unit = parts[1], name = parts.drop(2).joinToString(" "))
+                        IngredientDraft(
+                            amount = parts[0],
+                            unit = parts[1],
+                            name = parts.drop(2).joinToString(" ")
+                        )
                     )
                 } else {
                     ingredients.add(IngredientDraft(name = line))
@@ -824,6 +829,7 @@ onDeleted: () -> Unit
                 instructions.add(InstructionDraft(text = line))
             }
     }
+
 
     var pickedImageUri by remember { mutableStateOf<Uri?>(null) }
 
