@@ -45,6 +45,212 @@ enum class Routes(val route: String) {
     Edit("edit/{recipeId}")
 }
 
+data class IngredientDraft(
+    val amount: String = "",
+    val unit: String = "",
+    val name: String = ""
+)
+
+data class InstructionDraft(
+    val text: String = "",
+    val timer: String = ""
+)
+
+private val unitArr = listOf(
+    "g", "kg", "ml", "l", "tbsp", "tsp", "cup", "pcs", "pinch"
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun UnitDropdown(
+    unit: String,
+    onUnitChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = !expanded },
+        modifier = modifier
+    ) {
+        OutlinedTextField(
+            value = unit,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Unit") },
+            placeholder = { Text("Select") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+            modifier = Modifier.menuAnchor().fillMaxWidth()
+        )
+
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            unitArr.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option) },
+                    onClick = {
+                        onUnitChange(option)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun IngredientsEditor(
+    ingredients: List<IngredientDraft>,
+    onAdd: (IngredientDraft) -> Unit,
+    onRemoveAt: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var amount by remember { mutableStateOf("") }
+    var unit by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf("") }
+
+    Column(modifier) {
+        Text("Ingredients", style = MaterialTheme.typography.titleMedium)
+
+        Spacer(Modifier.height(8.dp))
+
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            OutlinedTextField(
+                value = amount,
+                onValueChange = { amount = it },
+                label = { Text("Amount") },
+                modifier = Modifier.weight(1f)
+            )
+            Box(Modifier.weight(1f)) {
+                UnitDropdown(unit = unit, onUnitChange = { unit = it })
+            }
+        }
+
+        Spacer(Modifier.height(10.dp))
+
+        OutlinedTextField(
+            value = name,
+            onValueChange = { name = it },
+            label = { Text("Ingredient") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(Modifier.height(10.dp))
+
+        Button(
+            onClick = {
+                if (name.isBlank()) return@Button
+                onAdd(IngredientDraft(amount = amount.trim(), unit = unit.trim(), name = name.trim()))
+                amount = ""
+                unit = ""
+                name = ""
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Add Ingredient") }
+
+        if (ingredients.isNotEmpty()) {
+            Spacer(Modifier.height(12.dp))
+            ingredients.forEachIndexed { idx, ing ->
+                OutlinedCard(Modifier.fillMaxWidth()) {
+                    Row(
+                        Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        val left = listOfNotNull(
+                            ing.amount.takeIf { it.isNotBlank() },
+                            ing.unit.takeIf { it.isNotBlank() }
+                        ).joinToString(" ")
+
+                        Text(
+                            text = "${if (left.isBlank()) "" else "$left "} ${ing.name}".trim(),
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        Spacer(Modifier.width(10.dp))
+
+                        OutlinedButton(onClick = { onRemoveAt(idx) }) { Text("Remove") }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun InstructionsEditor(
+    instructions: List<InstructionDraft>,
+    onAdd: (InstructionDraft) -> Unit,
+    onRemoveAt: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var text by remember { mutableStateOf("") }
+    var timer by remember { mutableStateOf("") }
+
+    Column(modifier) {
+        Text("Instructions", style = MaterialTheme.typography.titleMedium)
+
+        Spacer(Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = text,
+            onValueChange = { text = it },
+            label = { Text("Step") },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 2
+        )
+
+        Spacer(Modifier.height(10.dp))
+
+        OutlinedTextField(
+            value = timer,
+            onValueChange = { timer = it },
+            label = { Text("Timer (sec, optional)") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(Modifier.height(10.dp))
+
+        Button(
+            onClick = {
+                if (text.isBlank()) return@Button
+                onAdd(InstructionDraft(text = text.trim(), timer = timer.trim()))
+                text = ""
+                timer = ""
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Add Step") }
+
+        if (instructions.isNotEmpty()) {
+            Spacer(Modifier.height(12.dp))
+            instructions.forEachIndexed { idx, step ->
+                OutlinedCard(Modifier.fillMaxWidth()) {
+                    Row(
+                        Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "${idx + 1}. ${step.text}" +
+                                    (step.timer.toIntOrNull()?.let { if (it > 0) "  (${it}s)" else "" } ?: ""),
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(Modifier.width(10.dp))
+                        OutlinedButton(onClick = { onRemoveAt(idx) }) { Text("Remove") }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+            }
+        }
+    }
+}
+
+
 private val mealTypeArr = listOf(
     "Breakfast",
     "Brunch",
@@ -114,7 +320,6 @@ private val categoriesArr = listOf(
                     },
                     onDeleted = {
                         navController.navigate(Routes.List.route) {
-                            // clear detail/edit from backstack so back won't return to deleted recipe
                             popUpTo(Routes.List.route) { inclusive = false }
                             launchSingleTop = true
                         }
@@ -258,7 +463,7 @@ private fun MealTypeDropdown(
     ) {
         OutlinedTextField(
             value = mealType,
-            onValueChange = {}, // readOnly dropdown
+            onValueChange = {},
             readOnly = true,
             label = { Text("Meal type") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
@@ -390,10 +595,9 @@ fun CreateRecipeScreen(
     var categories by remember { mutableStateOf<List<String>>(emptyList()) }
     var totalTime by remember { mutableStateOf("") }
     var difficulty by remember { mutableStateOf("") }
-    var ingredientsText by remember { mutableStateOf("") }
-    var instructionsText by remember { mutableStateOf("") }
+    val ingredients = remember { mutableStateListOf<IngredientDraft>() }
+    val instructions = remember { mutableStateListOf<InstructionDraft>() }
 
-    // keep picked uri separate; save file path on Save
     var pickedImageUri by remember { mutableStateOf<Uri?>(null) }
 
     Column(
@@ -414,20 +618,18 @@ fun CreateRecipeScreen(
             OutlinedTextField(difficulty, { difficulty = it }, label = { Text("Difficulty (1-5)") }, modifier = Modifier.weight(1f))
         }
 
-        OutlinedTextField(
-            value = ingredientsText,
-            onValueChange = { ingredientsText = it },
-            label = { Text("Ingredients (one per line)") },
-            modifier = Modifier.fillMaxWidth(),
-            minLines = 3
+        IngredientsEditor(
+            ingredients = ingredients,
+            onAdd = { ingredients.add(it) },
+            onRemoveAt = { idx -> ingredients.removeAt(idx) },
+            modifier = Modifier.fillMaxWidth()
         )
 
-        OutlinedTextField(
-            value = instructionsText,
-            onValueChange = { instructionsText = it },
-            label = { Text("Instructions (one step per line)") },
-            modifier = Modifier.fillMaxWidth(),
-            minLines = 3
+        InstructionsEditor(
+            instructions = instructions,
+            onAdd = { instructions.add(it) },
+            onRemoveAt = { idx -> instructions.removeAt(idx) },
+            modifier = Modifier.fillMaxWidth()
         )
 
         ImagePickerField(
@@ -443,9 +645,23 @@ fun CreateRecipeScreen(
 
                 val total = totalTime.toIntOrNull() ?: 0
                 val diff = difficulty.toIntOrNull() ?: 1
-                val ingredients = parseIngredientsLines(ingredientsText)
-                val instructions = parseInstructionsLines(instructionsText)
+                val ingredientList = ingredients.map {
+                    Ingredient(
+                        recipeId = 0,
+                        name = it.name,
+                        amount = it.amount.ifBlank { null },
+                        unit = it.unit.ifBlank { null }
+                    )
+                }
 
+                val instructionList = instructions.mapIndexed { idx, s ->
+                    Instruction(
+                        recipeId = 0,
+                        stepNumber = idx + 1,
+                        text = s.text,
+                        timer = s.timer.toIntOrNull() ?: 0
+                    )
+                }
                 scope.launch {
                     val savedPath = pickedImageUri?.let { copyImageToInternalStorage(context, it) }
 
@@ -453,9 +669,9 @@ fun CreateRecipeScreen(
                         name = name,
                         mealType = mealType,
                         categories = categories.joinToString(","),
-                        imagePath = savedPath,              // <-- persisted file path
-                        ingredients = ingredients,
-                        instructions = instructions,
+                        imagePath = savedPath,
+                        ingredients = ingredientList,
+                        instructions = instructionList,
                         totalTime = total,
                         difficulty = diff
                     )
@@ -575,6 +791,34 @@ onDeleted: () -> Unit
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
+    val ingredients = remember { mutableStateListOf<IngredientDraft>() }
+    val instructions = remember { mutableStateListOf<InstructionDraft>() }
+
+    LaunchedEffect(ui.recipeId) {
+        ingredients.clear()
+        instructions.clear()
+
+        // from existing VM text into drafts
+        ui.ingredientsText
+            .lines().map { it.trim() }.filter { it.isNotBlank() }
+            .forEach { line ->
+                val parts = line.split(" ").filter { it.isNotBlank() }
+                if (parts.size >= 3) {
+                    ingredients.add(
+                        IngredientDraft(amount = parts[0], unit = parts[1], name = parts.drop(2).joinToString(" "))
+                    )
+                } else {
+                    ingredients.add(IngredientDraft(name = line))
+                }
+            }
+
+        ui.instructionsText
+            .lines().map { it.trim() }.filter { it.isNotBlank() }
+            .forEach { line ->
+                instructions.add(InstructionDraft(text = line))
+            }
+    }
+
     var pickedImageUri by remember { mutableStateOf<Uri?>(null) }
 
     Column(
@@ -595,21 +839,20 @@ onDeleted: () -> Unit
             OutlinedTextField(ui.difficulty, viewModel::updateDifficulty, label = { Text("Difficulty (1-5)") }, modifier = Modifier.weight(1f))
         }
 
-        OutlinedTextField(
-            value = ui.ingredientsText,
-            onValueChange = viewModel::updateIngredientsText,
-            label = { Text("Ingredients (one per line)") },
-            modifier = Modifier.fillMaxWidth(),
-            minLines = 3
+        IngredientsEditor(
+            ingredients = ingredients,
+            onAdd = { ingredients.add(it) },
+            onRemoveAt = { idx -> ingredients.removeAt(idx) },
+            modifier = Modifier.fillMaxWidth()
         )
 
-        OutlinedTextField(
-            value = ui.instructionsText,
-            onValueChange = viewModel::updateInstructionsText,
-            label = { Text("Instructions (one step per line)") },
-            modifier = Modifier.fillMaxWidth(),
-            minLines = 3
+        InstructionsEditor(
+            instructions = instructions,
+            onAdd = { instructions.add(it) },
+            onRemoveAt = { idx -> instructions.removeAt(idx) },
+            modifier = Modifier.fillMaxWidth()
         )
+
 
         ImagePickerField(
             existingImagePath = ui.imagePath,
@@ -622,6 +865,19 @@ onDeleted: () -> Unit
         Button(
             onClick = {
                 scope.launch {
+                    val ingredientsText = ingredients.joinToString("\n") { ing ->
+                        listOfNotNull(
+                            ing.amount.takeIf { it.isNotBlank() },
+                            ing.unit.takeIf { it.isNotBlank() },
+                            ing.name.takeIf { it.isNotBlank() }
+                        ).joinToString(" ")
+                    }
+
+                    val instructionsText = instructions.joinToString("\n") { it.text }
+                    viewModel.updateIngredientsText(ingredientsText)
+                    viewModel.updateInstructionsText(instructionsText)
+
+
                     val newPath = pickedImageUri?.let { copyImageToInternalStorage(context, it) }
                     if (newPath != null) viewModel.updateImagePath(newPath)
 
