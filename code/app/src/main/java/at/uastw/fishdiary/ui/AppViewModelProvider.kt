@@ -7,19 +7,24 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import at.uastw.fishdiary.FishDiary
 
 object AppViewModelProvider {
-
     val Factory = viewModelFactory {
         initializer {
             val app = this[APPLICATION_KEY] as FishDiary
-            FishesViewModel(app.fishRepository)
+            RecipesViewModel(app.recipeRepository)
         }
         initializer {
             val app = this[APPLICATION_KEY] as FishDiary
-            FishDetailViewModel(this.createSavedStateHandle(), app.fishRepository)
+            RecipeDetailViewModel(this.createSavedStateHandle(), app.recipeRepository)
         }
         initializer {
             val app = this[APPLICATION_KEY] as FishDiary
-            FishEditViewModel(this.createSavedStateHandle(), app.fishRepository)
+            RecipeEditViewModel(this.createSavedStateHandle(), app.recipeRepository)
+        }
+        initializer {
+            val app = this[APPLICATION_KEY] as FishDiary
+            AddRecipeViewModel(app.recipeRepository)
         }
     }
 }
+
+
