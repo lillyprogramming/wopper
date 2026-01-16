@@ -12,18 +12,3 @@ data class Recipe(
     val difficulty: Int,
 )
 
-data class Ingredient(
-    val id: Int = 0,
-    val recipeId: Int,
-    val name: String,
-    val amount: String? = null,
-    val unit: String? = null
-)
-
-data class Instruction(
-    val id: Int = 0,
-    val recipeId: Int,
-    val stepNumber: Int,
-    val text: String,
-    val timer: Int = 0,
-)
