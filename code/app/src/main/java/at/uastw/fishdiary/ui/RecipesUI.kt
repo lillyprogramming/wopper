@@ -1,6 +1,7 @@
 package at.uastw.fishdiary.ui
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.*
@@ -26,16 +27,25 @@ import coil.compose.AsyncImage
 import android.net.Uri
 import java.io.File
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.compose.rememberLauncherForActivityResult
-import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import androidx.activity.result.PickVisualMediaRequest
 import android.content.Context
+import android.media.MediaPlayer
 import androidx.compose.ui.platform.LocalContext
 import java.io.FileOutputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import java.util.Locale
 
 
 enum class Routes(val route: String) {
@@ -211,7 +221,7 @@ private fun InstructionsEditor(
         OutlinedTextField(
             value = timer,
             onValueChange = { timer = it },
-            label = { Text("Timer (sec, optional)") },
+            label = { Text("Timer (minute, optional)") },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -280,9 +290,129 @@ private val categoriesArr = listOf(
     @Composable
     fun FishDiaryApp(
         modifier: Modifier = Modifier,
-        navController: NavHostController = rememberNavController()
+        navController: NavHostController = rememberNavController(),
+        timerViewModel: TimerViewModel = viewModel(factory = AppViewModelProvider.Factory)
     ) {
-        NavHost(navController = navController, modifier = modifier, startDestination = Routes.List.route) {
+        val timerState by timerViewModel.timerState.collectAsStateWithLifecycle()
+        val displayMinutes = if (timerState.isRunning) timerState.remainingTime / 60 else timerState.minutes
+        val displaySeconds = if (timerState.isRunning) timerState.remainingTime % 60 else timerState.seconds
+        val context = LocalContext.current
+        
+        // Store MediaPlayer reference
+        var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+        
+        // Play sound when dialog shows
+        LaunchedEffect(timerState.showCompletionDialog) {
+            if (timerState.showCompletionDialog) {
+                try {
+                    // Release previous player if exists
+                    mediaPlayer?.release()
+                    
+                    // Try multiple possible paths and filenames
+                    val possiblePaths = listOf(
+                        "themes/sounds/sound.mp3",
+                        "sounds/sound.mp3"
+                    )
+                    
+                    var player: MediaPlayer?
+                    for (path in possiblePaths) {
+                        try {
+                            val assetFileDescriptor = context.assets.openFd(path)
+                            player = MediaPlayer().apply {
+                                setDataSource(
+                                    assetFileDescriptor.fileDescriptor,
+                                    assetFileDescriptor.startOffset,
+                                    assetFileDescriptor.length
+                                )
+                                prepare()
+                                isLooping = true
+                            }
+                            assetFileDescriptor.close()
+                            mediaPlayer = player
+                            player.start()
+                            break // Successfully loaded and playing
+                        } catch (_: Exception) {
+                            // Try next path
+                            continue
+                        }
+                    }
+                } catch (_: Exception) {
+                    // Handle error - sound file might not be found
+                    mediaPlayer = null
+                }
+            } else {
+                // Stop and release when dialog is dismissed
+                mediaPlayer?.apply {
+                    if (isPlaying) {
+                        stop()
+                    }
+                    release()
+                }
+                mediaPlayer = null
+            }
+        }
+        
+        // Cleanup MediaPlayer when composable is disposed
+        DisposableEffect(Unit) {
+            onDispose {
+                mediaPlayer?.apply {
+                    if (isPlaying) {
+                        stop()
+                    }
+                    release()
+                }
+            }
+        }
+
+        // Show completion dialog when timer reaches 0
+        if (timerState.showCompletionDialog) {
+            AlertDialog(
+                onDismissRequest = { 
+                    mediaPlayer?.apply {
+                        if (isPlaying) {
+                            stop()
+                        }
+                        release()
+                    }
+                    mediaPlayer = null
+                    timerViewModel.dismissCompletionDialog() 
+                },
+                title = { Text("Time is up!") },
+                confirmButton = {
+                    Button(onClick = { 
+                        mediaPlayer?.apply {
+                            if (isPlaying) {
+                                stop()
+                            }
+                            release()
+                        }
+                        mediaPlayer = null
+                        timerViewModel.dismissCompletionDialog() 
+                    }) {
+                        Text("OK")
+                    }
+                }
+            )
+        }
+
+        Box(modifier = modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Timer bar at the top when running
+                if (timerState.isRunning) {
+                    TimerTopBar(
+                        minutes = displayMinutes,
+                        seconds = displaySeconds,
+                        onPause = { timerViewModel.pauseTimer() },
+                        onClear = { timerViewModel.clearTimer() },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                
+                NavHost(
+                    navController = navController,
+                    modifier = Modifier.weight(1f),
+                    startDestination = Routes.List.route
+                ) {
 
             composable(Routes.List.route) {
                 RecipesHomeScreen(
@@ -301,7 +431,8 @@ private val categoriesArr = listOf(
             ) {
                 RecipeDetailView(
                     navController = navController,
-                    onEditClick = { id -> navController.navigate("edit/$id") }
+                    onEditClick = { id -> navController.navigate("edit/$id") },
+                    timerViewModel = timerViewModel
                 )
             }
 
@@ -326,8 +457,8 @@ private val categoriesArr = listOf(
                     }
                 )
             }
-
-
+                }
+            }
         }
     }
 
@@ -354,12 +485,13 @@ private suspend fun copyImageToInternalStorage(context: Context, uri: Uri): Stri
 
 @Composable
 fun ImagePickerField(
+    modifier: Modifier = Modifier,
     label: String = "Image (optional)",
     existingImagePath: String?,
     pickedImageUri: Uri?,
     onPick: (Uri?) -> Unit,
     onRemoveExisting: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+
 ) {
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -716,77 +848,345 @@ fun RecipeListItem(
 fun RecipeDetailView(
     recipeDetailViewModel: RecipeDetailViewModel = viewModel(factory = AppViewModelProvider.Factory),
     navController: NavHostController? = null,
-    onEditClick: (Int) -> Unit
+    onEditClick: (Int) -> Unit,
+    timerViewModel: TimerViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
     val state by recipeDetailViewModel.recipeDetailUiState.collectAsStateWithLifecycle()
 
     RecipeDetails(
         recipe = state.recipe,
         onBackClick = { navController?.popBackStack() },
-        onEditClick = { onEditClick(state.recipe.id) }
+        onEditClick = { onEditClick(state.recipe.id) },
+        timerViewModel = timerViewModel
     )
 }
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RecipeDetails(
-    recipe: Recipe,
-    onEditClick: () -> Unit = {},
-    onBackClick: () -> Unit = {},
+fun TimerComponent(
+    minutes: Int,
+    seconds: Int,
+    onMinutesChange: (Int) -> Unit,
+    onSecondsChange: (Int) -> Unit,
+    onStart: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    OutlinedCard(
-        modifier.fillMaxWidth().padding(16.dp)
+    
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState())) {
-            Text(recipe.name, style = MaterialTheme.typography.headlineLarge)
-            Spacer(Modifier.height(8.dp))
-            Text("${recipe.mealType} • ${recipe.totalTime} min • Difficulty ${recipe.difficulty}")
-
-            Spacer(Modifier.height(10.dp))
-            CategoriesChips(categoriesCsv = recipe.categories)
-
-            Spacer(Modifier.height(16.dp))
-
-            if (!recipe.imagePath.isNullOrBlank()) {
-                OutlinedCard(Modifier.fillMaxWidth()) {
-                    AsyncImage(
-                        model = recipe.imagePath,
-                        contentDescription = "Recipe image",
-                        modifier = Modifier.fillMaxWidth().height(220.dp),
-                        contentScale = ContentScale.Crop
+        // Timer Display
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Minutes
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                IconButton(
+                    onClick = { 
+                        if (minutes < 99) {
+                            onMinutesChange(minutes + 1)
+                        }
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowUp,
+                        contentDescription = "Increase minutes",
+                        tint = Color.White
                     )
                 }
-                Spacer(Modifier.height(12.dp))
+                
+                Text(
+                    text = String.format(Locale.getDefault(), "%02d", minutes),
+                    fontSize = 48.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                
+                IconButton(
+                    onClick = { 
+                        if (minutes > 0) {
+                            onMinutesChange(minutes - 1)
+                        }
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = "Decrease minutes",
+                        tint = Color.White
+                    )
+                }
             }
-
-            Text("Ingredients:", style = MaterialTheme.typography.titleMedium)
-            recipe.ingredients.forEach { ing ->
-                val amountUnit = listOfNotNull(ing.amount?.takeIf { it.isNotBlank() }, ing.unit?.takeIf { it.isNotBlank() })
-                    .joinToString(" ")
-                Text("• ${amountUnit.ifBlank { "" }} ${ing.name}".trim())
+            
+            Text(
+                text = ":",
+                fontSize = 48.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+            
+            // Seconds
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                IconButton(
+                    onClick = { 
+                        if (seconds < 59) {
+                            onSecondsChange(seconds + 1)
+                        } else { 
+                            onSecondsChange(0)
+                            if (minutes < 99) onMinutesChange(minutes + 1)
+                        }
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowUp,
+                        contentDescription = "Increase seconds",
+                        tint = Color.White
+                    )
+                }
+                
+                Text(
+                    text = String.format(Locale.getDefault(), "%02d", seconds),
+                    fontSize = 48.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+                
+                IconButton(
+                    onClick = { 
+                        if (seconds > 0) {
+                            onSecondsChange(seconds - 1)
+                        } else { 
+                            onSecondsChange(59)
+                            if (minutes > 0) onMinutesChange(minutes - 1)
+                        }
+                    }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = "Decrease seconds",
+                        tint = Color.White
+                    )
+                }
             }
-
-            Spacer(Modifier.height(12.dp))
-
-            Text("Instructions:", style = MaterialTheme.typography.titleMedium)
-            recipe.instructions.sortedBy { it.stepNumber }.forEach { step ->
-                Text("${step.stepNumber}. ${step.text}")
+            
+            Spacer(Modifier.width(16.dp))
+            
+            // Play Button
+            FloatingActionButton(
+                onClick = {
+                    if (minutes > 0 || seconds > 0) {
+                        onStart()
+                    }
+                },
+                containerColor = Color(0xFF4DD0E1), // Light blue/teal
+                modifier = Modifier.size(64.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PlayArrow,
+                    contentDescription = "Start",
+                    tint = Color.White,
+                    modifier = Modifier.size(32.dp)
+                )
             }
-
-            Spacer(Modifier.height(12.dp))
-
-            Text("Notes:", style = MaterialTheme.typography.titleMedium)
-            Text(recipe.notes)
-
-            Spacer(Modifier.height(20.dp))
-
-            Button(onClick = onBackClick, modifier = Modifier.fillMaxWidth()) { Text("Go Back") }
-            Spacer(Modifier.height(12.dp))
-            Button(onClick = onEditClick, modifier = Modifier.fillMaxWidth()) { Text("Edit Recipe") }
+        }
+        
+        // Reset button
+        if (minutes > 0 || seconds > 0) {
+            TextButton(onClick = { 
+                onMinutesChange(0)
+                onSecondsChange(0)
+            }) {
+                Text("Reset", color = Color.White)
+            }
         }
     }
 }
+
+@Composable
+fun TimerTopBar(
+    minutes: Int,
+    seconds: Int,
+    onPause: () -> Unit,
+    onClear: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = Color(0xFFFFB5A7), // Light coral/peach color
+        shadowElevation = 4.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Timer: ${String.format(Locale.getDefault(), "%02d", minutes)}:${String.format(Locale.getDefault(), "%02d", seconds)}",
+                style = MaterialTheme.typography.titleMedium,
+                color = Color.White,
+                fontWeight = FontWeight.Bold
+            )
+            
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Pause button
+                IconButton(onClick = onPause) {
+                    // Custom pause icon (two rectangles)
+                    Box(
+                        modifier = Modifier.size(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .width(6.dp)
+                                    .height(16.dp)
+                                    .background(Color.White, RoundedCornerShape(1.dp))
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .width(6.dp)
+                                    .height(16.dp)
+                                    .background(Color.White, RoundedCornerShape(1.dp))
+                            )
+                        }
+                    }
+                }
+                
+                // Clear/Stop button (X icon)
+                IconButton(onClick = onClear) {
+                    // Custom X icon (clear/stop)
+                    Box(
+                        modifier = Modifier.size(24.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Clear",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RecipeDetails(
+    recipe: Recipe,
+    modifier: Modifier = Modifier,
+    onEditClick: () -> Unit = {},
+    onBackClick: () -> Unit = {},
+
+    timerViewModel: TimerViewModel = viewModel(factory = AppViewModelProvider.Factory)
+) {
+    var showTimerSheet by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val timerState by timerViewModel.timerState.collectAsStateWithLifecycle()
+
+    Box(modifier = modifier.fillMaxSize()) {
+        OutlinedCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+                Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState())) {
+                    Text(recipe.name, style = MaterialTheme.typography.headlineLarge)
+                    Spacer(Modifier.height(8.dp))
+                    Text("${recipe.mealType} • ${recipe.totalTime} min • Difficulty ${recipe.difficulty}")
+
+                    Spacer(Modifier.height(10.dp))
+                    CategoriesChips(categoriesCsv = recipe.categories)
+
+                    Spacer(Modifier.height(16.dp))
+
+                    if (!recipe.imagePath.isNullOrBlank()) {
+                        OutlinedCard(Modifier.fillMaxWidth()) {
+                            AsyncImage(
+                                model = recipe.imagePath,
+                                contentDescription = "Recipe image",
+                                modifier = Modifier.fillMaxWidth().height(220.dp),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                        Spacer(Modifier.height(12.dp))
+                    }
+
+                    Text("Ingredients:", style = MaterialTheme.typography.titleMedium)
+                    recipe.ingredients.forEach { ing ->
+                        val amountUnit = listOfNotNull(ing.amount?.takeIf { it.isNotBlank() }, ing.unit?.takeIf { it.isNotBlank() })
+                            .joinToString(" ")
+                        Text("• ${amountUnit.ifBlank { "" }} ${ing.name}".trim())
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    Text("Instructions:", style = MaterialTheme.typography.titleMedium)
+                    recipe.instructions.sortedBy { it.stepNumber }.forEach { step ->
+                        Text("${step.stepNumber}. ${step.text}")
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    Text("Notes:", style = MaterialTheme.typography.titleMedium)
+                    Text(recipe.notes)
+
+                    Spacer(Modifier.height(20.dp))
+
+                    Button(onClick = { showTimerSheet = true }, modifier = Modifier.fillMaxWidth()) { 
+                        Text("Set Timer") 
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    Button(onClick = onBackClick, modifier = Modifier.fillMaxWidth()) { Text("Go Back") }
+                    Spacer(Modifier.height(12.dp))
+                    Button(onClick = onEditClick, modifier = Modifier.fillMaxWidth()) { Text("Edit Recipe") }
+                }
+            }
+        }
+
+        if (showTimerSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showTimerSheet = false },
+                sheetState = sheetState,
+                containerColor = Color(0xFFFFB5A7), // Light coral/peach color
+                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+            ) {
+                TimerComponent(
+                    minutes = timerState.minutes,
+                    seconds = timerState.seconds,
+                    onMinutesChange = { timerViewModel.setMinutes(it) },
+                    onSecondsChange = { timerViewModel.setSeconds(it) },
+                    onStart = {
+                        timerViewModel.startTimer()
+                        showTimerSheet = false
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 32.dp)
+                )
+            }
+        }
+    }
+
 
 @Composable
     fun EditRecipeScreen(
@@ -910,42 +1310,6 @@ onDeleted: () -> Unit
 
 
 
-private fun parseIngredientsLines(text: String): List<Ingredient> {
-    return text
-        .lines()
-        .map { it.trim() }
-        .filter { it.isNotBlank() }
-        .map { line ->
-            val parts = line.split(" ").filter { it.isNotBlank() }
-            if (parts.size >= 3) {
-                Ingredient(
-                    recipeId = 0,
-                    name = parts.drop(2).joinToString(" "),
-                    amount = parts[0],
-                    unit = parts[1]
-                )
-            } else {
-                Ingredient(
-                    recipeId = 0,
-                    name = line,
-                    amount = null,
-                    unit = null
-                )
-            }
-        }
-}
 
-private fun parseInstructionsLines(text: String): List<Instruction> {
-    return text
-        .lines()
-        .map { it.trim() }
-        .filter { it.isNotBlank() }
-        .mapIndexed { idx, line ->
-            Instruction(
-                recipeId = 0,
-                stepNumber = idx + 1,
-                text = line,
-                timer = 0
-            )
-        }
-}
+
+
