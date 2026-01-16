@@ -101,12 +101,100 @@ private fun UnitDropdown(
     }
 }
 
+@Composable
+private fun EditIngredientDialog(
+    initial: IngredientDraft,
+    onDismiss: () -> Unit,
+    onSave: (IngredientDraft) -> Unit
+) {
+    var amount by remember { mutableStateOf(initial.amount) }
+    var unit by remember { mutableStateOf(initial.unit) }
+    var name by remember { mutableStateOf(initial.name) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Ingredient") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedTextField(
+                        value = amount,
+                        onValueChange = { amount = it },
+                        label = { Text("Amount") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    Box(Modifier.weight(1f)) {
+                        UnitDropdown(unit = unit, onUnitChange = { unit = it })
+                    }
+                }
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Ingredient") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                if (name.isBlank()) return@Button
+                onSave(IngredientDraft(amount.trim(), unit.trim(), name.trim()))
+            }) { Text("Save") }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}
+
+@Composable
+private fun EditInstructionDialog(
+    initial: InstructionDraft,
+    onDismiss: () -> Unit,
+    onSave: (InstructionDraft) -> Unit
+) {
+    var text by remember { mutableStateOf(initial.text) }
+    var timer by remember { mutableStateOf(initial.timer) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Step") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    label = { Text("Step") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2
+                )
+                OutlinedTextField(
+                    value = timer,
+                    onValueChange = { timer = it },
+                    label = { Text("Timer (sec, optional)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                if (text.isBlank()) return@Button
+                onSave(InstructionDraft(text.trim(), timer.trim()))
+            }) { Text("Save") }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}
+
 
 @Composable
 private fun IngredientsEditor(
     ingredients: List<IngredientDraft>,
     onAdd: (IngredientDraft) -> Unit,
     onRemoveAt: (Int) -> Unit,
+    onEditAt: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var amount by remember { mutableStateOf("") }
@@ -155,7 +243,10 @@ private fun IngredientsEditor(
         if (ingredients.isNotEmpty()) {
             Spacer(Modifier.height(12.dp))
             ingredients.forEachIndexed { idx, ing ->
-                OutlinedCard(Modifier.fillMaxWidth()) {
+                OutlinedCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { onEditAt(idx) }
+                ) {
                     Row(
                         Modifier.padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -188,6 +279,7 @@ private fun InstructionsEditor(
     instructions: List<InstructionDraft>,
     onAdd: (InstructionDraft) -> Unit,
     onRemoveAt: (Int) -> Unit,
+    onEditAt: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var text by remember { mutableStateOf("") }
@@ -230,7 +322,10 @@ private fun InstructionsEditor(
         if (instructions.isNotEmpty()) {
             Spacer(Modifier.height(12.dp))
             instructions.forEachIndexed { idx, step ->
-                OutlinedCard(Modifier.fillMaxWidth()) {
+                OutlinedCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { onEditAt(idx) }
+                ) {
                     Row(
                         Modifier.padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -596,6 +691,36 @@ fun CreateRecipeScreen(
     val instructions = remember { mutableStateListOf<InstructionDraft>() }
     var notes by remember { mutableStateOf("") }
 
+    var editingIngredientIndex by remember { mutableStateOf<Int?>(null) }
+    var editingInstructionIndex by remember { mutableStateOf<Int?>(null) }
+
+    editingIngredientIndex
+        ?.takeIf { it in ingredients.indices }
+        ?.let { idx ->
+            EditIngredientDialog(
+                initial = ingredients[idx],
+                onDismiss = { editingIngredientIndex = null },
+                onSave = { updated ->
+                    ingredients[idx] = updated
+                    editingIngredientIndex = null
+                }
+            )
+        }
+
+    editingInstructionIndex
+        ?.takeIf { it in instructions.indices }
+        ?.let { idx ->
+            EditInstructionDialog(
+                initial = instructions[idx],
+                onDismiss = { editingInstructionIndex = null },
+                onSave = { updated ->
+                    instructions[idx] = updated
+                    editingInstructionIndex = null
+                }
+            )
+        }
+
+
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -623,6 +748,7 @@ fun CreateRecipeScreen(
             ingredients = ingredients,
             onAdd = { ingredients.add(it) },
             onRemoveAt = { idx -> ingredients.removeAt(idx) },
+            onEditAt = { idx -> editingIngredientIndex = idx },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -630,6 +756,7 @@ fun CreateRecipeScreen(
             instructions = instructions,
             onAdd = { instructions.add(it) },
             onRemoveAt = { idx -> instructions.removeAt(idx) },
+            onEditAt = { idx -> editingInstructionIndex = idx },
             modifier = Modifier.fillMaxWidth()
         )
         OutlinedTextField(notes, { notes = it }, label = { Text("Notes (Optional)") }, modifier = Modifier.fillMaxWidth())
@@ -802,6 +929,31 @@ onDeleted: () -> Unit
     val ingredients = remember { mutableStateListOf<IngredientDraft>() }
     val instructions = remember { mutableStateListOf<InstructionDraft>() }
 
+    var editingIngredientIndex by remember { mutableStateOf<Int?>(null) }
+    var editingInstructionIndex by remember { mutableStateOf<Int?>(null) }
+
+    editingIngredientIndex?.let { idx ->
+        EditIngredientDialog(
+            initial = ingredients[idx],
+            onDismiss = { editingIngredientIndex = null },
+            onSave = { updated ->
+                ingredients[idx] = updated
+                editingIngredientIndex = null
+            }
+        )
+    }
+
+    editingInstructionIndex?.let { idx ->
+        EditInstructionDialog(
+            initial = instructions[idx],
+            onDismiss = { editingInstructionIndex = null },
+            onSave = { updated ->
+                instructions[idx] = updated
+                editingInstructionIndex = null
+            }
+        )
+    }
+
     LaunchedEffect(ui.ingredientsText, ui.instructionsText) {
         ingredients.clear()
         instructions.clear()
@@ -855,6 +1007,7 @@ onDeleted: () -> Unit
             ingredients = ingredients,
             onAdd = { ingredients.add(it) },
             onRemoveAt = { idx -> ingredients.removeAt(idx) },
+            onEditAt = { idx -> editingIngredientIndex = idx },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -862,6 +1015,7 @@ onDeleted: () -> Unit
             instructions = instructions,
             onAdd = { instructions.add(it) },
             onRemoveAt = { idx -> instructions.removeAt(idx) },
+            onEditAt = { idx -> editingInstructionIndex = idx },
             modifier = Modifier.fillMaxWidth()
         )
         OutlinedTextField(ui.notes, viewModel::updateNotes, label = { Text("Notes") }, modifier = Modifier.fillMaxWidth())
