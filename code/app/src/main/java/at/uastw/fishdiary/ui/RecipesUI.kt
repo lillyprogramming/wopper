@@ -3,12 +3,17 @@ package at.uastw.fishdiary.ui
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -36,15 +41,13 @@ import java.io.FileOutputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
+import androidx.compose.material.icons.filled.Add
+
 import java.util.Locale
 
 
@@ -684,6 +687,7 @@ private fun CategoriesMultiDropdown(
     }
 }
 
+// Woopper Style Homepage
 @Composable
 fun RecipesHomeScreen(
     recipesViewModel: RecipesViewModel = viewModel(factory = AppViewModelProvider.Factory),
@@ -692,22 +696,231 @@ fun RecipesHomeScreen(
 ) {
     val recipes by recipesViewModel.recipesUiState.collectAsStateWithLifecycle()
 
-    Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(onClick = onAddClick) {
-                Text("+")
+    // Group recipes by meal type
+    val recipesByMealType = recipes.groupBy { it.mealType }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF7AF9D))
+    ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            item {
+                // Header with light blue background
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFB0D0D3))
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                    ) {
+                        Spacer(Modifier.height(24.dp))
+                        Text(
+                            text = "wopper",
+                            style = MaterialTheme.typography.headlineLarge,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 42.sp,
+                            color = Color(0xFFFFCAD4)
+                        )
+                        Spacer(Modifier.height(24.dp))
+                    }
+                }
+            }
+
+            // Create a section for each meal type that has recipes
+            mealTypeArr.forEach { mealType ->
+                val mealTypeRecipes = recipesByMealType[mealType] ?: emptyList()
+                
+                // Only show sections that have at least one recipe
+                if (mealTypeRecipes.isNotEmpty()) {
+                    item {
+                        MealTypeSection(
+                            mealType = mealType,
+                            recipes = mealTypeRecipes,
+                            onRecipeClick = onRecipeClick
+                        )
+                    }
+                }
+            }
+
+            item {
+                Spacer(Modifier.height(32.dp))
             }
         }
-    ) { padding ->
-        LazyColumn(
+
+        // Floating Action Button for adding recipes
+        FloatingActionButton(
+            onClick = onAddClick,
             modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .align(Alignment.BottomEnd)
+                .padding(24.dp),
+            containerColor = Color(0xFFC08497),
+            contentColor = Color.White
         ) {
-            itemsIndexed(recipes) { _, recipe ->
-                RecipeListItem(recipe = recipe, onCardClick = { onRecipeClick(recipe.id) })
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Add Recipe"
+            )
+        }
+    }
+}
+
+@Composable
+fun MealTypeSection(
+    mealType: String,
+    recipes: List<Recipe>,
+    onRecipeClick: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        )
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "# $mealType",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                fontSize = 28.sp,
+                color = Color(0xFF111827)
+            )
+            Spacer(Modifier.height(8.dp))
+
+            Button(
+                onClick = {
+                    val randomRecipe = recipes.random()
+                    onRecipeClick(randomRecipe.id)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFB0D0D3)
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    text = "Pick a Random one",
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.White
+                )
+            }
+
+            // Create a grid layout using rows
+            recipes.chunked(2).forEach { rowRecipes ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    rowRecipes.forEach { recipe ->
+                        Box(modifier = Modifier.weight(1f)) {
+                            WoopperRecipeCard(
+                                recipe = recipe,
+                                onCardClick = { onRecipeClick(recipe.id) }
+                            )
+                        }
+                    }
+                    // Add empty space if odd number of items
+                    if (rowRecipes.size == 1) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun WoopperRecipeCard(
+    recipe: Recipe,
+    onCardClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        onClick = onCardClick,
+        modifier = modifier
+            .fillMaxWidth()
+            .aspectRatio(0.85f),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFFFFE0E6)
+        ),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            Color(0xFFFFB3C1)
+        )
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            // Recipe Image
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                if (recipe.imagePath != null && recipe.imagePath.isNotBlank()) {
+                    AsyncImage(
+                        model = recipe.imagePath,
+                        contentDescription = recipe.name,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Color(0xFFE0E0E0)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = recipe.name.take(1).uppercase(),
+                            style = MaterialTheme.typography.headlineLarge,
+                            color = Color(0xFF9E9E9E)
+                        )
+                    }
+                }
+            }
+            
+            // Recipe Name
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFFF7AF9D))
+                    .padding(12.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = recipe.name,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.White,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1
+                )
             }
         }
     }
@@ -938,8 +1151,8 @@ fun TimerComponent(
             ) {
                 IconButton(
                     onClick = { 
-                        if (seconds < 59) {
-                            onSecondsChange(seconds + 1)
+                        if (seconds < 50) {
+                            onSecondsChange(seconds + 10)
                         } else { 
                             onSecondsChange(0)
                             if (minutes < 99) onMinutesChange(minutes + 1)
@@ -963,9 +1176,9 @@ fun TimerComponent(
                 IconButton(
                     onClick = { 
                         if (seconds > 0) {
-                            onSecondsChange(seconds - 1)
+                            onSecondsChange(seconds - 10)
                         } else { 
-                            onSecondsChange(59)
+                            onSecondsChange(50)
                             if (minutes > 0) onMinutesChange(minutes - 1)
                         }
                     }
