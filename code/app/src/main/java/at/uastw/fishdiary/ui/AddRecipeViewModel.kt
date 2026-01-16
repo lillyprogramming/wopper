@@ -18,6 +18,7 @@ class AddRecipeViewModel(
         imagePath: String?,
         ingredients: List<Ingredient>,
         instructions: List<Instruction>,
+        notes: String,
         totalTime: Int,
         difficulty: Int,
         onFinished: () -> Unit = {}
@@ -30,6 +31,7 @@ class AddRecipeViewModel(
                 imagePath = imagePath,
                 ingredients = ingredients,
                 instructions = instructions,
+                notes = notes,
                 totalTime = totalTime,
                 difficulty = difficulty
             )

@@ -8,6 +8,7 @@ data class Recipe(
     val imagePath: String? = null,
     val ingredients: List<Ingredient> = emptyList(),
     val instructions: List<Instruction> = emptyList(),
+    val notes: String,
     val totalTime: Int,
     val difficulty: Int,
 )

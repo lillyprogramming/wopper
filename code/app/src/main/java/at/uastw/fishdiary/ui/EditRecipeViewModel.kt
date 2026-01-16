@@ -20,6 +20,7 @@ data class RecipeEditUiState(
     val difficulty: String = "",
     val ingredientsText: String = "",
     val instructionsText: String = "",
+    val notes: String = "",
     val imagePath: String? = null
 )
 
@@ -49,6 +50,7 @@ class RecipeEditViewModel(
                     instructionsText = r.instructions.sortedBy { it.stepNumber }.joinToString("\n") { step ->
                         step.text
                     },
+                    notes = r.notes,
                     imagePath = r.imagePath
                 )
             }
@@ -63,6 +65,7 @@ class RecipeEditViewModel(
     fun updateIngredientsText(v: String) = _uiState.update { it.copy(ingredientsText = v) }
     fun updateInstructionsText(v: String) = _uiState.update { it.copy(instructionsText = v) }
     fun updateImagePath(v: String?) = _uiState.update { it.copy(imagePath = v) }
+    fun updateNotes(v: String) = _uiState.update { it.copy(notes = v) }
 
     fun save(onFinished: () -> Unit) {
         val s = _uiState.value
@@ -81,6 +84,7 @@ class RecipeEditViewModel(
                 imagePath = s.imagePath,
                 ingredients = ingredients,
                 instructions = instructions,
+                notes = s.notes,
                 totalTime = total,
                 difficulty = diff
             )

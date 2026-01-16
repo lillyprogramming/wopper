@@ -597,6 +597,7 @@ fun CreateRecipeScreen(
     var difficulty by remember { mutableStateOf("") }
     val ingredients = remember { mutableStateListOf<IngredientDraft>() }
     val instructions = remember { mutableStateListOf<InstructionDraft>() }
+    var notes by remember { mutableStateOf("") }
 
     var pickedImageUri by remember { mutableStateOf<Uri?>(null) }
 
@@ -631,7 +632,7 @@ fun CreateRecipeScreen(
             onRemoveAt = { idx -> instructions.removeAt(idx) },
             modifier = Modifier.fillMaxWidth()
         )
-
+        OutlinedTextField(notes, { notes = it }, label = { Text("Notes (Optional)") }, modifier = Modifier.fillMaxWidth())
         ImagePickerField(
             existingImagePath = null,
             pickedImageUri = pickedImageUri,
@@ -672,6 +673,7 @@ fun CreateRecipeScreen(
                         imagePath = savedPath,
                         ingredients = ingredientList,
                         instructions = instructionList,
+                        notes = notes,
                         totalTime = total,
                         difficulty = diff
                     )
@@ -772,6 +774,11 @@ fun RecipeDetails(
                 Text("${step.stepNumber}. ${step.text}")
             }
 
+            Spacer(Modifier.height(12.dp))
+
+            Text("Notes:", style = MaterialTheme.typography.titleMedium)
+            Text(recipe.notes)
+
             Spacer(Modifier.height(20.dp))
 
             Button(onClick = onBackClick, modifier = Modifier.fillMaxWidth()) { Text("Go Back") }
@@ -798,7 +805,6 @@ onDeleted: () -> Unit
         ingredients.clear()
         instructions.clear()
 
-        // from existing VM text into drafts
         ui.ingredientsText
             .lines().map { it.trim() }.filter { it.isNotBlank() }
             .forEach { line ->
@@ -852,7 +858,7 @@ onDeleted: () -> Unit
             onRemoveAt = { idx -> instructions.removeAt(idx) },
             modifier = Modifier.fillMaxWidth()
         )
-
+        OutlinedTextField(ui.notes, viewModel::updateNotes, label = { Text("Notes") }, modifier = Modifier.fillMaxWidth())
 
         ImagePickerField(
             existingImagePath = ui.imagePath,

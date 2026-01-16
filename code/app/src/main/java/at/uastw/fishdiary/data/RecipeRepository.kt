@@ -21,6 +21,7 @@ class RecipeRepository(private val recipesDao: RecipesDao) {
                     .map {
                         Instruction(it.id, it.recipeId, it.stepNumber, it.text, it.timer)
                     },
+                notes = row.recipe.notes,
                 totalTime = row.recipe.totalTime,
                 difficulty = row.recipe.difficulty,
             )
@@ -34,11 +35,12 @@ class RecipeRepository(private val recipesDao: RecipesDao) {
         imagePath: String?,
         ingredients: List<Ingredient>,
         instructions: List<Instruction>,
+        notes: String,
         totalTime: Int,
         difficulty: Int,
     ) {
         val recipeId = recipesDao.insertRecipe(
-            RecipeEntity(mealType = mealType, categories = categories, name = name, imagePath = imagePath, totalTime = totalTime, difficulty = difficulty)
+            RecipeEntity(mealType = mealType, categories = categories, name = name, imagePath = imagePath, notes = notes, totalTime = totalTime, difficulty = difficulty)
         ).toInt()
 
         recipesDao.insertIngredients(
@@ -78,6 +80,7 @@ class RecipeRepository(private val recipesDao: RecipesDao) {
             instructions = row.instructions.sortedBy { it.stepNumber }.map {
                 Instruction(it.id, it.recipeId, it.stepNumber, it.text, it.timer)
             },
+            notes = row.recipe.notes,
             totalTime = row.recipe.totalTime,
             difficulty = row.recipe.difficulty,
         )
@@ -95,6 +98,7 @@ class RecipeRepository(private val recipesDao: RecipesDao) {
         imagePath: String?,
         ingredients: List<Ingredient>,
         instructions: List<Instruction>,
+        notes: String,
         totalTime: Int,
         difficulty: Int
     ) {
@@ -105,6 +109,7 @@ class RecipeRepository(private val recipesDao: RecipesDao) {
                 categories = categories,
                 name = name,
                 imagePath = imagePath,
+                notes = notes,
                 totalTime = totalTime,
                 difficulty = difficulty
             )

@@ -31,6 +31,7 @@ class RecipeDetailViewModel(
                 imagePath = null,
                 ingredients = emptyList(),
                 instructions = emptyList(),
+                notes = "",
                 totalTime = 0,
                 difficulty = 1
             )

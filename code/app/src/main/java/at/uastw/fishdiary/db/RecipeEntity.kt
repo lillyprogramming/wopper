@@ -11,6 +11,7 @@ data class RecipeEntity(
     val categories: String,
     val name: String,
     val imagePath: String? = null,
+    val notes: String,
     val totalTime: Int,
     val difficulty: Int,
 )
