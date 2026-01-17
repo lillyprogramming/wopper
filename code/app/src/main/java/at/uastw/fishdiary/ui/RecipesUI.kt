@@ -899,7 +899,7 @@ fun RecipeDetails(
 
             Text("Instructions:", style = MaterialTheme.typography.titleMedium)
             recipe.instructions.sortedBy { it.stepNumber }.forEach { step ->
-                Text("${step.stepNumber}. ${step.text}")
+                Text("${step.stepNumber}. ${step.text} for ${step.timer} minutes")
             }
 
             Spacer(Modifier.height(12.dp))
@@ -917,10 +917,10 @@ fun RecipeDetails(
 }
 
 @Composable
-    fun EditRecipeScreen(
-viewModel: RecipeEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
-onSaved: () -> Unit,
-onDeleted: () -> Unit
+fun EditRecipeScreen(
+    viewModel: RecipeEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
+    onSaved: () -> Unit,
+    onDeleted: () -> Unit
 ) {
     val ui by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -929,59 +929,48 @@ onDeleted: () -> Unit
     val ingredients = remember { mutableStateListOf<IngredientDraft>() }
     val instructions = remember { mutableStateListOf<InstructionDraft>() }
 
+    var hydrated by remember(ui.recipeId) { mutableStateOf(false) }
+
+    LaunchedEffect(ui.loaded, ui.recipeId) {
+        if (ui.loaded && !hydrated) {
+            ingredients.clear()
+            ingredients.addAll(ui.ingredients)
+
+            instructions.clear()
+            instructions.addAll(ui.instructions)
+
+            hydrated = true
+        }
+    }
+
     var editingIngredientIndex by remember { mutableStateOf<Int?>(null) }
     var editingInstructionIndex by remember { mutableStateOf<Int?>(null) }
 
-    editingIngredientIndex?.let { idx ->
-        EditIngredientDialog(
-            initial = ingredients[idx],
-            onDismiss = { editingIngredientIndex = null },
-            onSave = { updated ->
-                ingredients[idx] = updated
-                editingIngredientIndex = null
-            }
-        )
-    }
-
-    editingInstructionIndex?.let { idx ->
-        EditInstructionDialog(
-            initial = instructions[idx],
-            onDismiss = { editingInstructionIndex = null },
-            onSave = { updated ->
-                instructions[idx] = updated
-                editingInstructionIndex = null
-            }
-        )
-    }
-
-    LaunchedEffect(ui.ingredientsText, ui.instructionsText) {
-        ingredients.clear()
-        instructions.clear()
-
-        ui.ingredientsText
-            .lines().map { it.trim() }.filter { it.isNotBlank() }
-            .forEach { line ->
-                val parts = line.split(" ").filter { it.isNotBlank() }
-                if (parts.size >= 3) {
-                    ingredients.add(
-                        IngredientDraft(
-                            amount = parts[0],
-                            unit = parts[1],
-                            name = parts.drop(2).joinToString(" ")
-                        )
-                    )
-                } else {
-                    ingredients.add(IngredientDraft(name = line))
+    editingIngredientIndex
+        ?.takeIf { it in ingredients.indices }
+        ?.let { idx ->
+            EditIngredientDialog(
+                initial = ingredients[idx],
+                onDismiss = { editingIngredientIndex = null },
+                onSave = { updated ->
+                    ingredients[idx] = updated
+                    editingIngredientIndex = null
                 }
-            }
+            )
+        }
 
-        ui.instructionsText
-            .lines().map { it.trim() }.filter { it.isNotBlank() }
-            .forEach { line ->
-                instructions.add(InstructionDraft(text = line))
-            }
-    }
-
+    editingInstructionIndex
+        ?.takeIf { it in instructions.indices }
+        ?.let { idx ->
+            EditInstructionDialog(
+                initial = instructions[idx],
+                onDismiss = { editingInstructionIndex = null },
+                onSave = { updated ->
+                    instructions[idx] = updated
+                    editingInstructionIndex = null
+                }
+            )
+        }
 
     var pickedImageUri by remember { mutableStateOf<Uri?>(null) }
 
@@ -1018,6 +1007,7 @@ onDeleted: () -> Unit
             onEditAt = { idx -> editingInstructionIndex = idx },
             modifier = Modifier.fillMaxWidth()
         )
+
         OutlinedTextField(ui.notes, viewModel::updateNotes, label = { Text("Notes") }, modifier = Modifier.fillMaxWidth())
 
         ImagePickerField(
@@ -1031,32 +1021,21 @@ onDeleted: () -> Unit
         Button(
             onClick = {
                 scope.launch {
-                    val ingredientsText = ingredients.joinToString("\n") { ing ->
-                        listOfNotNull(
-                            ing.amount.takeIf { it.isNotBlank() },
-                            ing.unit.takeIf { it.isNotBlank() },
-                            ing.name.takeIf { it.isNotBlank() }
-                        ).joinToString(" ")
-                    }
-
-                    val instructionsText = instructions.joinToString("\n") { it.text }
-                    viewModel.updateIngredientsText(ingredientsText)
-                    viewModel.updateInstructionsText(instructionsText)
-
-
                     val newPath = pickedImageUri?.let { copyImageToInternalStorage(context, it) }
                     if (newPath != null) viewModel.updateImagePath(newPath)
 
-                    viewModel.save(onSaved)
+                    viewModel.save(
+                        ingredientDrafts = ingredients.toList(),
+                        instructionDrafts = instructions.toList(),
+                        onFinished = onSaved
+                    )
                 }
             },
             modifier = Modifier.fillMaxWidth()
         ) { Text("Save Changes") }
 
         Button(
-            onClick = {
-                viewModel.delete(onDeleted)
-            },
+            onClick = { viewModel.delete(onDeleted) },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.error,
@@ -1070,42 +1049,3 @@ onDeleted: () -> Unit
 
 
 
-private fun parseIngredientsLines(text: String): List<Ingredient> {
-    return text
-        .lines()
-        .map { it.trim() }
-        .filter { it.isNotBlank() }
-        .map { line ->
-            val parts = line.split(" ").filter { it.isNotBlank() }
-            if (parts.size >= 3) {
-                Ingredient(
-                    recipeId = 0,
-                    name = parts.drop(2).joinToString(" "),
-                    amount = parts[0],
-                    unit = parts[1]
-                )
-            } else {
-                Ingredient(
-                    recipeId = 0,
-                    name = line,
-                    amount = null,
-                    unit = null
-                )
-            }
-        }
-}
-
-private fun parseInstructionsLines(text: String): List<Instruction> {
-    return text
-        .lines()
-        .map { it.trim() }
-        .filter { it.isNotBlank() }
-        .mapIndexed { idx, line ->
-            Instruction(
-                recipeId = 0,
-                stepNumber = idx + 1,
-                text = line,
-                timer = 0
-            )
-        }
-}

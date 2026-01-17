@@ -12,16 +12,17 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class RecipeEditUiState(
+    val loaded: Boolean = false,
     val recipeId: Int = 0,
     val name: String = "",
     val mealType: String = "",
     val categories: List<String> = emptyList(),
     val totalTime: String = "",
     val difficulty: String = "",
-    val ingredientsText: String = "",
-    val instructionsText: String = "",
     val notes: String = "",
-    val imagePath: String? = null
+    val imagePath: String? = null,
+    val ingredients: List<IngredientDraft> = emptyList(),
+    val instructions: List<InstructionDraft> = emptyList()
 )
 
 class RecipeEditViewModel(
@@ -39,19 +40,29 @@ class RecipeEditViewModel(
             val r = repository.getRecipeById(recipeId) ?: return@launch
             _uiState.update {
                 it.copy(
+                    loaded = true,
                     name = r.name,
                     mealType = r.mealType,
                     categories = r.categories.split(",").map { s -> s.trim() }.filter { s -> s.isNotBlank() },
                     totalTime = r.totalTime.toString(),
                     difficulty = r.difficulty.toString(),
-                    ingredientsText = r.ingredients.joinToString("\n") { ing ->
-                        listOfNotNull(ing.amount, ing.unit, ing.name).joinToString(" ")
-                    },
-                    instructionsText = r.instructions.sortedBy { it.stepNumber }.joinToString("\n") { step ->
-                        step.text
-                    },
                     notes = r.notes,
-                    imagePath = r.imagePath
+                    imagePath = r.imagePath,
+                    ingredients = r.ingredients.map { ing ->
+                        IngredientDraft(
+                            amount = ing.amount ?: "",
+                            unit = ing.unit ?: "",
+                            name = ing.name
+                        )
+                    },
+                    instructions = r.instructions
+                        .sortedBy { it.stepNumber }
+                        .map { step ->
+                            InstructionDraft(
+                                text = step.text,
+                                timer = step.timer.takeIf { t -> t > 0 }?.toString() ?: ""
+                            )
+                        }
                 )
             }
         }
@@ -62,19 +73,40 @@ class RecipeEditViewModel(
     fun updateCategories(v: List<String>) = _uiState.update { it.copy(categories = v) }
     fun updateTotalTime(v: String) = _uiState.update { it.copy(totalTime = v) }
     fun updateDifficulty(v: String) = _uiState.update { it.copy(difficulty = v) }
-    fun updateIngredientsText(v: String) = _uiState.update { it.copy(ingredientsText = v) }
-    fun updateInstructionsText(v: String) = _uiState.update { it.copy(instructionsText = v) }
     fun updateImagePath(v: String?) = _uiState.update { it.copy(imagePath = v) }
     fun updateNotes(v: String) = _uiState.update { it.copy(notes = v) }
 
-    fun save(onFinished: () -> Unit) {
+    fun save(
+        ingredientDrafts: List<IngredientDraft>,
+        instructionDrafts: List<InstructionDraft>,
+        onFinished: () -> Unit
+    ) {
         val s = _uiState.value
         viewModelScope.launch {
             val total = s.totalTime.toIntOrNull() ?: 0
             val diff = s.difficulty.toIntOrNull() ?: 1
 
-            val ingredients = parseIngredientsLines(s.ingredientsText)
-            val instructions = parseInstructionsLines(s.instructionsText)
+            val ingredients = ingredientDrafts
+                .filter { it.name.isNotBlank() }
+                .map { d ->
+                    Ingredient(
+                        recipeId = s.recipeId,
+                        name = d.name.trim(),
+                        amount = d.amount.trim().ifBlank { null },
+                        unit = d.unit.trim().ifBlank { null }
+                    )
+                }
+
+            val instructions = instructionDrafts
+                .filter { it.text.isNotBlank() }
+                .mapIndexed { idx, d ->
+                    Instruction(
+                        recipeId = s.recipeId,
+                        stepNumber = idx + 1,
+                        text = d.text.trim(),
+                        timer = d.timer.toIntOrNull() ?: 0
+                    )
+                }
 
             repository.updateRecipe(
                 id = s.recipeId,
@@ -92,18 +124,6 @@ class RecipeEditViewModel(
         }
     }
 
-    private fun parseIngredientsLines(text: String): List<Ingredient> =
-        text.lines().map { it.trim() }.filter { it.isNotBlank() }.map { line ->
-            val parts = line.split(" ").filter { it.isNotBlank() }
-            if (parts.size >= 3) Ingredient(0, 0, parts.drop(2).joinToString(" "), parts[0], parts[1])
-            else Ingredient(0, 0, line, null, null)
-        }
-
-    private fun parseInstructionsLines(text: String): List<Instruction> =
-        text.lines().map { it.trim() }.filter { it.isNotBlank() }.mapIndexed { idx, line ->
-            Instruction(0, 0, idx + 1, line, 0)
-        }
-
     fun delete(onFinished: () -> Unit) {
         val id = _uiState.value.recipeId
         viewModelScope.launch {
@@ -111,5 +131,4 @@ class RecipeEditViewModel(
             onFinished()
         }
     }
-
 }
