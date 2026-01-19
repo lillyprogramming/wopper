@@ -24,6 +24,7 @@ class RecipeRepository(private val recipesDao: RecipesDao) {
                 notes = row.recipe.notes,
                 totalTime = row.recipe.totalTime,
                 difficulty = row.recipe.difficulty,
+                servingSize = row.recipe.servingSize,
             )
         }
     }
@@ -38,9 +39,10 @@ class RecipeRepository(private val recipesDao: RecipesDao) {
         notes: String,
         totalTime: Int,
         difficulty: Int,
+        servingSize: Int
     ) {
         val recipeId = recipesDao.insertRecipe(
-            RecipeEntity(mealType = mealType, categories = categories, name = name, imagePath = imagePath, notes = notes, totalTime = totalTime, difficulty = difficulty)
+            RecipeEntity(mealType = mealType, categories = categories, name = name, imagePath = imagePath, notes = notes, totalTime = totalTime, difficulty = difficulty, servingSize = servingSize)
         ).toInt()
 
         recipesDao.insertIngredients(
@@ -83,6 +85,7 @@ class RecipeRepository(private val recipesDao: RecipesDao) {
             notes = row.recipe.notes,
             totalTime = row.recipe.totalTime,
             difficulty = row.recipe.difficulty,
+            servingSize = row.recipe.servingSize,
         )
     }
 
@@ -100,7 +103,8 @@ class RecipeRepository(private val recipesDao: RecipesDao) {
         instructions: List<Instruction>,
         notes: String,
         totalTime: Int,
-        difficulty: Int
+        difficulty: Int,
+        servingSize: Int
     ) {
         recipesDao.updateRecipe(
             RecipeEntity(
@@ -111,7 +115,8 @@ class RecipeRepository(private val recipesDao: RecipesDao) {
                 imagePath = imagePath,
                 notes = notes,
                 totalTime = totalTime,
-                difficulty = difficulty
+                difficulty = difficulty,
+                servingSize = servingSize,
             )
         )
 
