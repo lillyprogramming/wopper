@@ -21,6 +21,7 @@ class AddRecipeViewModel(
         notes: String,
         totalTime: Int,
         difficulty: Int,
+        servingSize: Int,
         onFinished: () -> Unit = {}
     ) {
         viewModelScope.launch {
@@ -33,7 +34,8 @@ class AddRecipeViewModel(
                 instructions = instructions,
                 notes = notes,
                 totalTime = totalTime,
-                difficulty = difficulty
+                difficulty = difficulty,
+                servingSize = servingSize,
             )
             onFinished()
         }

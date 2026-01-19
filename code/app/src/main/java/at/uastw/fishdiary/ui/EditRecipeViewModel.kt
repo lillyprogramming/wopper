@@ -22,7 +22,8 @@ data class RecipeEditUiState(
     val notes: String = "",
     val imagePath: String? = null,
     val ingredients: List<IngredientDraft> = emptyList(),
-    val instructions: List<InstructionDraft> = emptyList()
+    val instructions: List<InstructionDraft> = emptyList(),
+    val servingSize: String = "",
 )
 
 class RecipeEditViewModel(
@@ -46,6 +47,7 @@ class RecipeEditViewModel(
                     categories = r.categories.split(",").map { s -> s.trim() }.filter { s -> s.isNotBlank() },
                     totalTime = r.totalTime.toString(),
                     difficulty = r.difficulty.toString(),
+                    servingSize = r.servingSize.toString(),
                     notes = r.notes,
                     imagePath = r.imagePath,
                     ingredients = r.ingredients.map { ing ->
@@ -73,6 +75,8 @@ class RecipeEditViewModel(
     fun updateCategories(v: List<String>) = _uiState.update { it.copy(categories = v) }
     fun updateTotalTime(v: String) = _uiState.update { it.copy(totalTime = v) }
     fun updateDifficulty(v: String) = _uiState.update { it.copy(difficulty = v) }
+    fun updateServingSize(v: String) = _uiState.update { it.copy(servingSize = v) }
+
     fun updateImagePath(v: String?) = _uiState.update { it.copy(imagePath = v) }
     fun updateNotes(v: String) = _uiState.update { it.copy(notes = v) }
 
@@ -85,6 +89,7 @@ class RecipeEditViewModel(
         viewModelScope.launch {
             val total = s.totalTime.toIntOrNull() ?: 0
             val diff = s.difficulty.toIntOrNull() ?: 1
+            val serveSize = s.servingSize.toIntOrNull() ?: 1
 
             val ingredients = ingredientDrafts
                 .filter { it.name.isNotBlank() }
@@ -118,7 +123,8 @@ class RecipeEditViewModel(
                 instructions = instructions,
                 notes = s.notes,
                 totalTime = total,
-                difficulty = diff
+                difficulty = diff,
+                servingSize = serveSize,
             )
             onFinished()
         }

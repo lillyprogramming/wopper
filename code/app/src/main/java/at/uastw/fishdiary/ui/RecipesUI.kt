@@ -690,6 +690,7 @@ fun CreateRecipeScreen(
     val ingredients = remember { mutableStateListOf<IngredientDraft>() }
     val instructions = remember { mutableStateListOf<InstructionDraft>() }
     var notes by remember { mutableStateOf("") }
+    var servingSize by remember { mutableStateOf("") }
 
     var editingIngredientIndex by remember { mutableStateOf<Int?>(null) }
     var editingInstructionIndex by remember { mutableStateOf<Int?>(null) }
@@ -742,6 +743,7 @@ fun CreateRecipeScreen(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedTextField(totalTime, { totalTime = it }, label = { Text("Total time (min)") }, modifier = Modifier.weight(1f))
             OutlinedTextField(difficulty, { difficulty = it }, label = { Text("Difficulty (1-5)") }, modifier = Modifier.weight(1f))
+            OutlinedTextField(servingSize, { servingSize = it }, label = { Text("Serving Size") }, modifier = Modifier.weight(1f))
         }
 
         IngredientsEditor(
@@ -774,6 +776,8 @@ fun CreateRecipeScreen(
 
                 val total = totalTime.toIntOrNull() ?: 0
                 val diff = difficulty.toIntOrNull() ?: 1
+                val serveSize = difficulty.toIntOrNull() ?: 1
+
                 val ingredientList = ingredients.map {
                     Ingredient(
                         recipeId = 0,
@@ -803,7 +807,8 @@ fun CreateRecipeScreen(
                         instructions = instructionList,
                         notes = notes,
                         totalTime = total,
-                        difficulty = diff
+                        difficulty = diff,
+                        servingSize = serveSize,
                     )
                     onFinished()
                 }
@@ -869,7 +874,7 @@ fun RecipeDetails(
         Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState())) {
             Text(recipe.name, style = MaterialTheme.typography.headlineLarge)
             Spacer(Modifier.height(8.dp))
-            Text("${recipe.mealType} • ${recipe.totalTime} min • Difficulty ${recipe.difficulty}")
+            Text("${recipe.mealType} • ${recipe.totalTime} min • Difficulty ${recipe.difficulty} • Serving Size ${recipe.servingSize}")
 
             Spacer(Modifier.height(10.dp))
             CategoriesChips(categoriesCsv = recipe.categories)
@@ -990,6 +995,7 @@ fun EditRecipeScreen(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedTextField(ui.totalTime, viewModel::updateTotalTime, label = { Text("Total time (min)") }, modifier = Modifier.weight(1f))
             OutlinedTextField(ui.difficulty, viewModel::updateDifficulty, label = { Text("Difficulty (1-5)") }, modifier = Modifier.weight(1f))
+            OutlinedTextField(ui.servingSize, viewModel::updateServingSize, label = { Text("Serving Size") }, modifier = Modifier.weight(1f))
         }
 
         IngredientsEditor(

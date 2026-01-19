@@ -11,5 +11,6 @@ data class Recipe(
     val notes: String,
     val totalTime: Int,
     val difficulty: Int,
+    val servingSize: Int,
 )
 
