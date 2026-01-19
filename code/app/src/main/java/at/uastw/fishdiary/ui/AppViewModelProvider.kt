@@ -24,6 +24,9 @@ object AppViewModelProvider {
             val app = this[APPLICATION_KEY] as FishDiary
             AddRecipeViewModel(app.recipeRepository)
         }
+        initializer {
+            TimerViewModel()
+        }
     }
 }
 
