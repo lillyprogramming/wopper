@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -32,8 +33,6 @@ import coil.compose.AsyncImage
 import android.net.Uri
 import java.io.File
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.compose.rememberLauncherForActivityResult
-import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import androidx.activity.result.PickVisualMediaRequest
 import android.content.Context
@@ -96,7 +95,7 @@ private fun UnitDropdown(
             label = { Text("Unit") },
             placeholder = { Text("Select") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-            modifier = Modifier.menuAnchor().fillMaxWidth()
+            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
         )
 
         ExposedDropdownMenu(
@@ -347,7 +346,7 @@ private fun InstructionsEditor(
                     ) {
                         Text(
                             text = "${idx + 1}. ${step.text}" +
-                                    (step.timer.toIntOrNull()?.let { if (it > 0) "  (${it}s)" else "" } ?: ""),
+                                    (step.timer.toIntOrNull()?.let { if (it > 0) "  (${it} min)" else "" } ?: ""),
                             modifier = Modifier.weight(1f)
                         )
                         Spacer(Modifier.width(10.dp))
@@ -700,7 +699,7 @@ private fun MealTypeDropdown(
             label = { Text("Meal type") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier
-                .menuAnchor()
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                 .fillMaxWidth()
         )
 
@@ -746,7 +745,7 @@ private fun CategoriesMultiDropdown(
             placeholder = { Text("Select categories") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier
-                .menuAnchor()
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                 .fillMaxWidth()
         )
 
@@ -1123,7 +1122,7 @@ fun CreateRecipeScreen(
 
                 val total = totalTime.toIntOrNull() ?: 0
                 val diff = difficulty.toIntOrNull() ?: 1
-                val serveSize = difficulty.toIntOrNull() ?: 1
+                val serveSize = servingSize.toIntOrNull() ?: 1
 
                 val ingredientList = ingredients.map {
                     Ingredient(
@@ -1447,6 +1446,10 @@ fun RecipeDetails(
 
     timerViewModel: TimerViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
+    var showTimerSheet by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val timerState by timerViewModel.timerState.collectAsStateWithLifecycle()
+
     OutlinedCard(
         modifier.fillMaxWidth().padding(16.dp)
     ) {
@@ -1454,215 +1457,111 @@ fun RecipeDetails(
             Text(recipe.name, style = MaterialTheme.typography.headlineLarge)
             Spacer(Modifier.height(8.dp))
             Text("${recipe.mealType} • ${recipe.totalTime} min • Difficulty ${recipe.difficulty} • Serving Size ${recipe.servingSize}")
-            var showTimerSheet by remember { mutableStateOf(false) }
-            val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-            val timerState by timerViewModel.timerState.collectAsStateWithLifecycle()
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-    Box(modifier = modifier.fillMaxSize()) {
-        OutlinedCard(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-                Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState())) {
-                    Text(recipe.name, style = MaterialTheme.typography.headlineLarge)
-                    Spacer(Modifier.height(8.dp))
-                    Text("${recipe.mealType} • ${recipe.totalTime} min • Difficulty ${recipe.difficulty}")
+            Spacer(Modifier.height(10.dp))
+            CategoriesChips(categoriesCsv = recipe.categories)
 
-                    Spacer(Modifier.height(10.dp))
-                    CategoriesChips(categoriesCsv = recipe.categories)
+            Spacer(Modifier.height(16.dp))
 
-                    Spacer(Modifier.height(16.dp))
-
-                    if (!recipe.imagePath.isNullOrBlank()) {
-                        OutlinedCard(Modifier.fillMaxWidth()) {
-                            AsyncImage(
-                                model = recipe.imagePath,
-                                contentDescription = "Recipe image",
-                                modifier = Modifier.fillMaxWidth().height(220.dp),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
-                        Spacer(Modifier.height(12.dp))
-                    }
-
-                    Text("Ingredients:", style = MaterialTheme.typography.titleMedium)
-                    recipe.ingredients.forEach { ing ->
-                        val amountUnit = listOfNotNull(ing.amount?.takeIf { it.isNotBlank() }, ing.unit?.takeIf { it.isNotBlank() })
-                            .joinToString(" ")
-                        Text("• ${amountUnit.ifBlank { "" }} ${ing.name}".trim())
-                    }
-
-                    Spacer(Modifier.height(12.dp))
-
-                    Text(
-                        "Instructions:",
-                        style = MaterialTheme.typography.titleMedium
+            if (!recipe.imagePath.isNullOrBlank()) {
+                OutlinedCard(Modifier.fillMaxWidth()) {
+                    AsyncImage(
+                        model = recipe.imagePath,
+                        contentDescription = "Recipe image",
+                        modifier = Modifier.fillMaxWidth().height(220.dp),
+                        contentScale = ContentScale.Crop
                     )
-
-                    recipe.instructions
-                        .sortedBy { it.stepNumber }
-                        .forEach { step ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "${step.stepNumber}. ${step.text}",
-                                    modifier = Modifier.weight(1f)
-                                )
-
-                                if (step.timer > 0) {
-                                    Button(
-                                        onClick = {  
-                                            timerViewModel.setMinutes(step.timer)
-                                            timerViewModel.setSeconds(0)
-                                            showTimerSheet = true 
-                                        }
-                                    ) {
-                                        Text("${step.timer} min")
-                                    }
-                                }
-                            }
-                        }
-                    Spacer(Modifier.height(12.dp))
-
-                    Text("Notes:", style = MaterialTheme.typography.titleMedium)
-                    Text(recipe.notes)
-
-                    Spacer(Modifier.height(20.dp))
-
-                    Button(onClick = { showTimerSheet = true }, modifier = Modifier.fillMaxWidth()) { 
-                        Text("Set Timer") 
-                    }
-                    Spacer(Modifier.height(12.dp))
-                    Button(onClick = onBackClick, modifier = Modifier.fillMaxWidth()) { Text("Go Back") }
-                    Spacer(Modifier.height(12.dp))
-                    Button(onClick = onEditClick, modifier = Modifier.fillMaxWidth()) { Text("Edit Recipe") }
                 }
-            }
-        }
-
-        if (showTimerSheet) {
-            ModalBottomSheet(
-                onDismissRequest = { showTimerSheet = false },
-                sheetState = sheetState,
-                containerColor = Color(0xFFFFB5A7), // Light coral/peach color
-                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-            ) {
-                TimerComponent(
-                    minutes = timerState.minutes,
-                    seconds = timerState.seconds,
-                    onMinutesChange = { timerViewModel.setMinutes(it) },
-                    onSecondsChange = { timerViewModel.setSeconds(it) },
-                    onStart = {
-                        timerViewModel.startTimer()
-                        showTimerSheet = false
-                    },
-=======
-            Box(modifier = modifier.fillMaxSize()) {
-                OutlinedCard(
->>>>>>> 6bf92bffb17e64769dda285a4ea134a456551bcd
-=======
-            Box(modifier = modifier.fillMaxSize()) {
-                OutlinedCard(
->>>>>>> 6bf92bffb17e64769dda285a4ea134a456551bcd
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState())) {
-                        Text(recipe.name, style = MaterialTheme.typography.headlineLarge)
-                        Spacer(Modifier.height(8.dp))
-                        Text("${recipe.mealType} • ${recipe.totalTime} min • Difficulty ${recipe.difficulty}")
-
-                        Spacer(Modifier.height(10.dp))
-                        CategoriesChips(categoriesCsv = recipe.categories)
-
-                        Spacer(Modifier.height(16.dp))
-
-                        if (!recipe.imagePath.isNullOrBlank()) {
-                            OutlinedCard(Modifier.fillMaxWidth()) {
-                                AsyncImage(
-                                    model = recipe.imagePath,
-                                    contentDescription = "Recipe image",
-                                    modifier = Modifier.fillMaxWidth().height(220.dp),
-                                    contentScale = ContentScale.Crop
-                                )
-                            }
-                            Spacer(Modifier.height(12.dp))
-                        }
-
-                        Text("Ingredients:", style = MaterialTheme.typography.titleMedium)
-                        recipe.ingredients.forEach { ing ->
-                            val amountUnit = listOfNotNull(
-                                ing.amount?.takeIf { it.isNotBlank() },
-                                ing.unit?.takeIf { it.isNotBlank() })
-                                .joinToString(" ")
-                            Text("• ${amountUnit.ifBlank { "" }} ${ing.name}".trim())
-                        }
-
-                        Spacer(Modifier.height(12.dp))
-
-                        Text("Instructions:", style = MaterialTheme.typography.titleMedium)
-                        recipe.instructions.sortedBy { it.stepNumber }.forEach { step ->
-                            Text("${step.stepNumber}. ${step.text}")
-                        }
-
-                        Spacer(Modifier.height(12.dp))
-
-                        Text("Notes:", style = MaterialTheme.typography.titleMedium)
-                        Text(recipe.notes)
-
-                        Spacer(Modifier.height(20.dp))
-
-                        Button(
-                            onClick = { showTimerSheet = true },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Set Timer")
-                        }
-                        Spacer(Modifier.height(12.dp))
-                        Button(
-                            onClick = onBackClick,
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("Go Back") }
-                        Spacer(Modifier.height(12.dp))
-                        Button(
-                            onClick = onEditClick,
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text("Edit Recipe") }
-                    }
-                }
+                Spacer(Modifier.height(12.dp))
             }
 
-            if (showTimerSheet) {
-                ModalBottomSheet(
-                    onDismissRequest = { showTimerSheet = false },
-                    sheetState = sheetState,
-                    containerColor = Color(0xFFFFB5A7), // Light coral/peach color
-                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-                ) {
-                    TimerComponent(
-                        minutes = timerState.minutes,
-                        seconds = timerState.seconds,
-                        onMinutesChange = { timerViewModel.setMinutes(it) },
-                        onSecondsChange = { timerViewModel.setSeconds(it) },
-                        onStart = {
-                            timerViewModel.startTimer()
-                            showTimerSheet = false
-                        },
+            Text("Ingredients:", style = MaterialTheme.typography.titleMedium)
+            recipe.ingredients.forEach { ing ->
+                val amountUnit = listOfNotNull(
+                    ing.amount?.takeIf { it.isNotBlank() },
+                    ing.unit?.takeIf { it.isNotBlank() })
+                    .joinToString(" ")
+                Text("• ${amountUnit.ifBlank { "" }} ${ing.name}".trim())
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            Text("Instructions:", style = MaterialTheme.typography.titleMedium)
+            recipe.instructions
+                .sortedBy { it.stepNumber }
+                .forEach { step ->
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 24.dp, vertical = 32.dp)
-                    )
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "${step.stepNumber}. ${step.text}",
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        if (step.timer > 0) {
+                            Button(
+                                onClick = {
+                                    timerViewModel.setMinutes(step.timer)
+                                    timerViewModel.setSeconds(0)
+                                    showTimerSheet = true
+                                }
+                            ) {
+                                Text("${step.timer} min")
+                            }
+                        }
+                    }
                 }
+
+            Spacer(Modifier.height(12.dp))
+
+            Text("Notes:", style = MaterialTheme.typography.titleMedium)
+            Text(recipe.notes)
+
+            Spacer(Modifier.height(20.dp))
+
+            Button(
+                onClick = { showTimerSheet = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Set Timer")
             }
+            Spacer(Modifier.height(12.dp))
+            Button(
+                onClick = onBackClick,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Go Back") }
+            Spacer(Modifier.height(12.dp))
+            Button(
+                onClick = onEditClick,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Edit Recipe") }
+        }
+    }
+
+    if (showTimerSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showTimerSheet = false },
+            sheetState = sheetState,
+            containerColor = Color(0xFFFFB5A7), // Light coral/peach color
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+        ) {
+            TimerComponent(
+                minutes = timerState.minutes,
+                seconds = timerState.seconds,
+                onMinutesChange = { timerViewModel.setMinutes(it) },
+                onSecondsChange = { timerViewModel.setSeconds(it) },
+                onStart = {
+                    timerViewModel.startTimer()
+                    showTimerSheet = false
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 32.dp)
+            )
         }
     }
 }
