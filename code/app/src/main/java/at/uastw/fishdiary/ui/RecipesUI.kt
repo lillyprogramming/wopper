@@ -1836,8 +1836,8 @@ fun RecipeDetails(
             Spacer(Modifier.height(8.dp))
             Text("${recipe.mealType} • ${recipe.totalTime} min • Difficulty ${recipe.difficulty}")
 
-                    Spacer(Modifier.height(10.dp))
-                    CategoriesChips(categoriesCsv = recipe.categories)
+            Spacer(Modifier.height(10.dp))
+            CategoriesChips(categoriesCsv = recipe.categories)
 
             Spacer(Modifier.height(12.dp))
 
@@ -1880,9 +1880,9 @@ fun RecipeDetails(
                 Text("• ${amountUnit.ifBlank { "" }} ${ing.name}".trim())
             }
 
-                    Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(12.dp))
 
-                    Text("Instructions:", style = MaterialTheme.typography.titleMedium)
+            Text("Instructions:", style = MaterialTheme.typography.titleMedium)
             recipe.instructions
                 .sortedBy { it.stepNumber }
                 .forEach { step ->
@@ -1910,27 +1910,27 @@ fun RecipeDetails(
                             }
                         }
                     }
-                    }
+                }
 
-                    Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(12.dp))
 
-                    Text("Notes:", style = MaterialTheme.typography.titleMedium)
-                    Text(recipe.notes)
+            Text("Notes:", style = MaterialTheme.typography.titleMedium)
+            Text(recipe.notes)
 
-                    Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(20.dp))
 
             Button(
                 onClick = { showTimerSheet = true },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                        Text("Set Timer") 
-                    }
-                    Spacer(Modifier.height(12.dp))
+                Text("Set Timer")
+            }
+            Spacer(Modifier.height(12.dp))
             Button(
                 onClick = onBackClick,
                 modifier = Modifier.fillMaxWidth()
             ) { Text("Go Back") }
-                    Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(12.dp))
             Button(
                 onClick = onEditClick,
                 modifier = Modifier.fillMaxWidth()
@@ -1961,96 +1961,63 @@ fun RecipeDetails(
             }
         }
     }
+
+
 @Composable
-    fun EditRecipeScreen(
-viewModel: RecipeEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
-onSaved: () -> Unit,
-onDeleted: () -> Unit
+fun EditRecipeScreen(
+    viewModel: RecipeEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
+    onSaved: () -> Unit,
+    onDeleted: () -> Unit
 ) {
     val ui by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    if (showTimerSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showTimerSheet = false },
-            sheetState = sheetState,
-            containerColor = Color(0xFFFFB5A7),
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-        ) {
-            TimerComponent(
-                minutes = timerState.minutes,
-                seconds = timerState.seconds,
-                onMinutesChange = { timerViewModel.setMinutes(it) },
-                onSecondsChange = { timerViewModel.setSeconds(it) },
-                onStart = {
-                    timerViewModel.startTimer()
-                    showTimerSheet = false
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 32.dp)
-            )
+    val ingredients = remember { mutableStateListOf<IngredientDraft>() }
+    val instructions = remember { mutableStateListOf<InstructionDraft>() }
+
+    var hydrated by remember(ui.recipeId) { mutableStateOf(false) }
+
+    LaunchedEffect(ui.loaded, ui.recipeId) {
+        if (ui.loaded && !hydrated) {
+            ingredients.clear()
+            ingredients.addAll(ui.ingredients)
+
+            instructions.clear()
+            instructions.addAll(ui.instructions)
+
+            hydrated = true
         }
     }
-}
 
+    var editingIngredientIndex by remember { mutableStateOf<Int?>(null) }
+    var editingInstructionIndex by remember { mutableStateOf<Int?>(null) }
 
-        @Composable
-        fun EditRecipeScreen(
-            viewModel: RecipeEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
-            onSaved: () -> Unit,
-            onDeleted: () -> Unit
-        ) {
-            val ui by viewModel.uiState.collectAsStateWithLifecycle()
-            val context = LocalContext.current
-            val scope = rememberCoroutineScope()
-
-            val ingredients = remember { mutableStateListOf<IngredientDraft>() }
-            val instructions = remember { mutableStateListOf<InstructionDraft>() }
-
-            var hydrated by remember(ui.recipeId) { mutableStateOf(false) }
-
-            LaunchedEffect(ui.loaded, ui.recipeId) {
-                if (ui.loaded && !hydrated) {
-        ingredients.clear()
-                    ingredients.addAll(ui.ingredients)
-
-        instructions.clear()
-                    instructions.addAll(ui.instructions)
-
-                    hydrated = true
+    editingIngredientIndex
+        ?.takeIf { it in ingredients.indices }
+        ?.let { idx ->
+            EditIngredientDialog(
+                initial = ingredients[idx],
+                onDismiss = { editingIngredientIndex = null },
+                onSave = { updated ->
+                    ingredients[idx] = updated
+                    editingIngredientIndex = null
                 }
-            }
+            )
+        }
 
-            var editingIngredientIndex by remember { mutableStateOf<Int?>(null) }
-            var editingInstructionIndex by remember { mutableStateOf<Int?>(null) }
-
-            editingIngredientIndex
-                ?.takeIf { it in ingredients.indices }
-                ?.let { idx ->
-                    EditIngredientDialog(
-                        initial = ingredients[idx],
-                        onDismiss = { editingIngredientIndex = null },
-                        onSave = { updated ->
-                            ingredients[idx] = updated
-                            editingIngredientIndex = null
-                        }
-                    )
+    editingInstructionIndex
+        ?.takeIf { it in instructions.indices }
+        ?.let { idx ->
+            EditInstructionDialog(
+                initial = instructions[idx],
+                onDismiss = { editingInstructionIndex = null },
+                onSave = { updated ->
+                    instructions[idx] = updated
+                    editingInstructionIndex = null
                 }
-
-            editingInstructionIndex
-                ?.takeIf { it in instructions.indices }
-                ?.let { idx ->
-                    EditInstructionDialog(
-                        initial = instructions[idx],
-                        onDismiss = { editingInstructionIndex = null },
-                        onSave = { updated ->
-                            instructions[idx] = updated
-                            editingInstructionIndex = null
-                        }
-                    )
-    }
+            )
+        }
 
     var pickedImageUri by remember { mutableStateOf<Uri?>(null) }
 
@@ -2063,45 +2030,45 @@ onDeleted: () -> Unit
     ) {
         Text("Edit Recipe", style = MaterialTheme.typography.headlineMedium)
 
-                OutlinedTextField(
-                    ui.name,
-                    viewModel::updateName,
-                    label = { Text("Name") },
-                    modifier = Modifier.fillMaxWidth()
-                )
+        OutlinedTextField(
+            ui.name,
+            viewModel::updateName,
+            label = { Text("Name") },
+            modifier = Modifier.fillMaxWidth()
+        )
         MealTypeDropdown(ui.mealType, viewModel::updateMealType, Modifier.fillMaxWidth())
-                CategoriesMultiDropdown(
-                    ui.categories,
-                    viewModel::updateCategories,
-                    Modifier.fillMaxWidth()
-                )
+        CategoriesMultiDropdown(
+            ui.categories,
+            viewModel::updateCategories,
+            Modifier.fillMaxWidth()
+        )
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(
-                        ui.totalTime,
-                        viewModel::updateTotalTime,
-                        label = { Text("Total time (min)") },
-                        modifier = Modifier.weight(1f)
-                    )
-                    OutlinedTextField(
-                        ui.difficulty,
-                        viewModel::updateDifficulty,
-                        label = { Text("Difficulty (1-5)") },
-                        modifier = Modifier.weight(1f)
-                    )
-                    OutlinedTextField(
-                        ui.servingSize,
-                        viewModel::updateServingSize,
-                        label = { Text("Serving Size") },
-                        modifier = Modifier.weight(1f)
-                    )
+            OutlinedTextField(
+                ui.totalTime,
+                viewModel::updateTotalTime,
+                label = { Text("Total time (min)") },
+                modifier = Modifier.weight(1f)
+            )
+            OutlinedTextField(
+                ui.difficulty,
+                viewModel::updateDifficulty,
+                label = { Text("Difficulty (1-5)") },
+                modifier = Modifier.weight(1f)
+            )
+            OutlinedTextField(
+                ui.servingSize,
+                viewModel::updateServingSize,
+                label = { Text("Serving Size") },
+                modifier = Modifier.weight(1f)
+            )
         }
 
         IngredientsEditor(
             ingredients = ingredients,
             onAdd = { ingredients.add(it) },
             onRemoveAt = { idx -> ingredients.removeAt(idx) },
-                    onEditAt = { idx -> editingIngredientIndex = idx },
+            onEditAt = { idx -> editingIngredientIndex = idx },
             modifier = Modifier.fillMaxWidth()
         )
 
@@ -2109,16 +2076,16 @@ onDeleted: () -> Unit
             instructions = instructions,
             onAdd = { instructions.add(it) },
             onRemoveAt = { idx -> instructions.removeAt(idx) },
-                    onEditAt = { idx -> editingInstructionIndex = idx },
+            onEditAt = { idx -> editingInstructionIndex = idx },
             modifier = Modifier.fillMaxWidth()
         )
 
-                OutlinedTextField(
-                    ui.notes,
-                    viewModel::updateNotes,
-                    label = { Text("Notes") },
-                    modifier = Modifier.fillMaxWidth()
-                )
+        OutlinedTextField(
+            ui.notes,
+            viewModel::updateNotes,
+            label = { Text("Notes") },
+            modifier = Modifier.fillMaxWidth()
+        )
 
         ImagePickerField(
             existingImagePath = ui.imagePath,
@@ -2131,22 +2098,22 @@ onDeleted: () -> Unit
         Button(
             onClick = {
                 scope.launch {
-                            val newPath =
-                                pickedImageUri?.let { copyImageToInternalStorage(context, it) }
+                    val newPath =
+                        pickedImageUri?.let { copyImageToInternalStorage(context, it) }
                     if (newPath != null) viewModel.updateImagePath(newPath)
 
-                            viewModel.save(
-                                ingredientDrafts = ingredients.toList(),
-                                instructionDrafts = instructions.toList(),
-                                onFinished = onSaved
-                            )
+                    viewModel.save(
+                        ingredientDrafts = ingredients.toList(),
+                        instructionDrafts = instructions.toList(),
+                        onFinished = onSaved
+                    )
                 }
             },
             modifier = Modifier.fillMaxWidth()
         ) { Text("Save Changes") }
 
         Button(
-                    onClick = { viewModel.delete(onDeleted) },
+            onClick = { viewModel.delete(onDeleted) },
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.error,
@@ -2154,10 +2121,10 @@ onDeleted: () -> Unit
             )
         ) { Text("Delete Recipe") }
 
-                OutlinedButton(
-                    onClick = onSaved,
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("Cancel") }
+        OutlinedButton(
+            onClick = onSaved,
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Cancel") }
     }
 }
 
