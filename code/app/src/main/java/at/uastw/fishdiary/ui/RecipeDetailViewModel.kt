@@ -33,7 +33,8 @@ class RecipeDetailViewModel(
                 instructions = emptyList(),
                 notes = "",
                 totalTime = 0,
-                difficulty = 1
+                difficulty = 1,
+                servingSize = 1,
             )
         )
     )

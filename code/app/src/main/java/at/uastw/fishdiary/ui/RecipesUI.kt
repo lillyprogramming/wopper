@@ -32,6 +32,8 @@ import coil.compose.AsyncImage
 import android.net.Uri
 import java.io.File
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.rememberLauncherForActivityResult
+import coil.compose.AsyncImage
 import androidx.compose.ui.layout.ContentScale
 import androidx.activity.result.PickVisualMediaRequest
 import android.content.Context
@@ -184,7 +186,7 @@ private fun EditInstructionDialog(
                 OutlinedTextField(
                     value = timer,
                     onValueChange = { timer = it },
-                    label = { Text("Timer (sec, optional)") },
+                    label = { Text("Timer (min, optional)") },
                     modifier = Modifier.fillMaxWidth()
                 )
             }
@@ -395,23 +397,23 @@ private val categoriesArr = listOf(
         val displayMinutes = if (timerState.isRunning) timerState.remainingTime / 60 else timerState.minutes
         val displaySeconds = if (timerState.isRunning) timerState.remainingTime % 60 else timerState.seconds
         val context = LocalContext.current
-        
+
         // Store MediaPlayer reference
         var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
-        
+
         // Play sound when dialog shows
         LaunchedEffect(timerState.showCompletionDialog) {
             if (timerState.showCompletionDialog) {
                 try {
                     // Release previous player if exists
                     mediaPlayer?.release()
-                    
+
                     // Try multiple possible paths and filenames
                     val possiblePaths = listOf(
                         "themes/sounds/sound.mp3",
                         "sounds/sound.mp3"
                     )
-                    
+
                     var player: MediaPlayer?
                     for (path in possiblePaths) {
                         try {
@@ -449,7 +451,7 @@ private val categoriesArr = listOf(
                 mediaPlayer = null
             }
         }
-        
+
         // Cleanup MediaPlayer when composable is disposed
         DisposableEffect(Unit) {
             onDispose {
@@ -465,7 +467,7 @@ private val categoriesArr = listOf(
         // Show completion dialog when timer reaches 0
         if (timerState.showCompletionDialog) {
             AlertDialog(
-                onDismissRequest = { 
+                onDismissRequest = {
                     mediaPlayer?.apply {
                         if (isPlaying) {
                             stop()
@@ -473,11 +475,11 @@ private val categoriesArr = listOf(
                         release()
                     }
                     mediaPlayer = null
-                    timerViewModel.dismissCompletionDialog() 
+                    timerViewModel.dismissCompletionDialog()
                 },
                 title = { Text("Time is up!") },
                 confirmButton = {
-                    Button(onClick = { 
+                    Button(onClick = {
                         mediaPlayer?.apply {
                             if (isPlaying) {
                                 stop()
@@ -485,7 +487,7 @@ private val categoriesArr = listOf(
                             release()
                         }
                         mediaPlayer = null
-                        timerViewModel.dismissCompletionDialog() 
+                        timerViewModel.dismissCompletionDialog()
                     }) {
                         Text("OK")
                     }
@@ -505,7 +507,7 @@ private val categoriesArr = listOf(
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
-                
+
                 NavHost(
                     navController = navController,
                     modifier = Modifier.weight(1f),
@@ -832,7 +834,7 @@ fun RecipesHomeScreen(
             // Create a section for each meal type that has recipes
             mealTypeArr.forEach { mealType ->
                 val mealTypeRecipes = recipesByMealType[mealType] ?: emptyList()
-                
+
                 // Only show sections that have at least one recipe
                 if (mealTypeRecipes.isNotEmpty()) {
                     item {
@@ -999,7 +1001,7 @@ fun WoopperRecipeCard(
                     }
                 }
             }
-            
+
             // Recipe Name
             Box(
                 modifier = Modifier
@@ -1035,6 +1037,7 @@ fun CreateRecipeScreen(
     val ingredients = remember { mutableStateListOf<IngredientDraft>() }
     val instructions = remember { mutableStateListOf<InstructionDraft>() }
     var notes by remember { mutableStateOf("") }
+    var servingSize by remember { mutableStateOf("") }
 
     var editingIngredientIndex by remember { mutableStateOf<Int?>(null) }
     var editingInstructionIndex by remember { mutableStateOf<Int?>(null) }
@@ -1087,6 +1090,7 @@ fun CreateRecipeScreen(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             OutlinedTextField(totalTime, { totalTime = it }, label = { Text("Total time (min)") }, modifier = Modifier.weight(1f))
             OutlinedTextField(difficulty, { difficulty = it }, label = { Text("Difficulty (1-5)") }, modifier = Modifier.weight(1f))
+            OutlinedTextField(servingSize, { servingSize = it }, label = { Text("Serving Size") }, modifier = Modifier.weight(1f))
         }
 
         IngredientsEditor(
@@ -1119,6 +1123,8 @@ fun CreateRecipeScreen(
 
                 val total = totalTime.toIntOrNull() ?: 0
                 val diff = difficulty.toIntOrNull() ?: 1
+                val serveSize = difficulty.toIntOrNull() ?: 1
+
                 val ingredientList = ingredients.map {
                     Ingredient(
                         recipeId = 0,
@@ -1148,7 +1154,8 @@ fun CreateRecipeScreen(
                         instructions = instructionList,
                         notes = notes,
                         totalTime = total,
-                        difficulty = diff
+                        difficulty = diff,
+                        servingSize = serveSize,
                     )
                     onFinished()
                 }
@@ -1213,7 +1220,7 @@ fun TimerComponent(
     onStart: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    
+
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -1230,7 +1237,7 @@ fun TimerComponent(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 IconButton(
-                    onClick = { 
+                    onClick = {
                         if (minutes < 99) {
                             onMinutesChange(minutes + 1)
                         }
@@ -1242,16 +1249,16 @@ fun TimerComponent(
                         tint = Color.White
                     )
                 }
-                
+
                 Text(
                     text = String.format(Locale.getDefault(), "%02d", minutes),
                     fontSize = 48.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
-                
+
                 IconButton(
-                    onClick = { 
+                    onClick = {
                         if (minutes > 0) {
                             onMinutesChange(minutes - 1)
                         }
@@ -1264,24 +1271,24 @@ fun TimerComponent(
                     )
                 }
             }
-            
+
             Text(
                 text = ":",
                 fontSize = 48.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
-            
+
             // Seconds
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 IconButton(
-                    onClick = { 
+                    onClick = {
                         if (seconds < 50) {
                             onSecondsChange(seconds + 10)
-                        } else { 
+                        } else {
                             onSecondsChange(0)
                             if (minutes < 99) onMinutesChange(minutes + 1)
                         }
@@ -1293,19 +1300,19 @@ fun TimerComponent(
                         tint = Color.White
                     )
                 }
-                
+
                 Text(
                     text = String.format(Locale.getDefault(), "%02d", seconds),
                     fontSize = 48.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
-                
+
                 IconButton(
-                    onClick = { 
+                    onClick = {
                         if (seconds > 0) {
                             onSecondsChange(seconds - 10)
-                        } else { 
+                        } else {
                             onSecondsChange(50)
                             if (minutes > 0) onMinutesChange(minutes - 1)
                         }
@@ -1318,9 +1325,9 @@ fun TimerComponent(
                     )
                 }
             }
-            
+
             Spacer(Modifier.width(16.dp))
-            
+
             // Play Button
             FloatingActionButton(
                 onClick = {
@@ -1339,10 +1346,10 @@ fun TimerComponent(
                 )
             }
         }
-        
+
         // Reset button
         if (minutes > 0 || seconds > 0) {
-            TextButton(onClick = { 
+            TextButton(onClick = {
                 onMinutesChange(0)
                 onSecondsChange(0)
             }) {
@@ -1378,7 +1385,7 @@ fun TimerTopBar(
                 color = Color.White,
                 fontWeight = FontWeight.Bold
             )
-            
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -1409,7 +1416,7 @@ fun TimerTopBar(
                         }
                     }
                 }
-                
+
                 // Clear/Stop button (X icon)
                 IconButton(onClick = onClear) {
                     // Custom X icon (clear/stop)
@@ -1440,10 +1447,18 @@ fun RecipeDetails(
 
     timerViewModel: TimerViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
-    var showTimerSheet by remember { mutableStateOf(false) }
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val timerState by timerViewModel.timerState.collectAsStateWithLifecycle()
+    OutlinedCard(
+        modifier.fillMaxWidth().padding(16.dp)
+    ) {
+        Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState())) {
+            Text(recipe.name, style = MaterialTheme.typography.headlineLarge)
+            Spacer(Modifier.height(8.dp))
+            Text("${recipe.mealType} • ${recipe.totalTime} min • Difficulty ${recipe.difficulty} • Serving Size ${recipe.servingSize}")
+            var showTimerSheet by remember { mutableStateOf(false) }
+            val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+            val timerState by timerViewModel.timerState.collectAsStateWithLifecycle()
 
+<<<<<<< HEAD
     Box(modifier = modifier.fillMaxSize()) {
         OutlinedCard(
             modifier = Modifier
@@ -1481,11 +1496,39 @@ fun RecipeDetails(
 
                     Spacer(Modifier.height(12.dp))
 
-                    Text("Instructions:", style = MaterialTheme.typography.titleMedium)
-                    recipe.instructions.sortedBy { it.stepNumber }.forEach { step ->
-                        Text("${step.stepNumber}. ${step.text}")
-                    }
+                    Text(
+                        "Instructions:",
+                        style = MaterialTheme.typography.titleMedium
+                    )
 
+                    recipe.instructions
+                        .sortedBy { it.stepNumber }
+                        .forEach { step ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "${step.stepNumber}. ${step.text}",
+                                    modifier = Modifier.weight(1f)
+                                )
+
+                                if (step.timer > 0) {
+                                    Button(
+                                        onClick = {  
+                                            timerViewModel.setMinutes(step.timer)
+                                            timerViewModel.setSeconds(0)
+                                            showTimerSheet = true 
+                                        }
+                                    ) {
+                                        Text("${step.timer} min")
+                                    }
+                                }
+                            }
+                        }
                     Spacer(Modifier.height(12.dp))
 
                     Text("Notes:", style = MaterialTheme.typography.titleMedium)
@@ -1520,145 +1563,267 @@ fun RecipeDetails(
                         timerViewModel.startTimer()
                         showTimerSheet = false
                     },
+=======
+            Box(modifier = modifier.fillMaxSize()) {
+                OutlinedCard(
+>>>>>>> 6bf92bffb17e64769dda285a4ea134a456551bcd
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 32.dp)
-                )
+                        .padding(16.dp)
+                ) {
+                    Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState())) {
+                        Text(recipe.name, style = MaterialTheme.typography.headlineLarge)
+                        Spacer(Modifier.height(8.dp))
+                        Text("${recipe.mealType} • ${recipe.totalTime} min • Difficulty ${recipe.difficulty}")
+
+                        Spacer(Modifier.height(10.dp))
+                        CategoriesChips(categoriesCsv = recipe.categories)
+
+                        Spacer(Modifier.height(16.dp))
+
+                        if (!recipe.imagePath.isNullOrBlank()) {
+                            OutlinedCard(Modifier.fillMaxWidth()) {
+                                AsyncImage(
+                                    model = recipe.imagePath,
+                                    contentDescription = "Recipe image",
+                                    modifier = Modifier.fillMaxWidth().height(220.dp),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+                            Spacer(Modifier.height(12.dp))
+                        }
+
+                        Text("Ingredients:", style = MaterialTheme.typography.titleMedium)
+                        recipe.ingredients.forEach { ing ->
+                            val amountUnit = listOfNotNull(
+                                ing.amount?.takeIf { it.isNotBlank() },
+                                ing.unit?.takeIf { it.isNotBlank() })
+                                .joinToString(" ")
+                            Text("• ${amountUnit.ifBlank { "" }} ${ing.name}".trim())
+                        }
+
+                        Spacer(Modifier.height(12.dp))
+
+                        Text("Instructions:", style = MaterialTheme.typography.titleMedium)
+                        recipe.instructions.sortedBy { it.stepNumber }.forEach { step ->
+                            Text("${step.stepNumber}. ${step.text}")
+                        }
+
+                        Spacer(Modifier.height(12.dp))
+
+                        Text("Notes:", style = MaterialTheme.typography.titleMedium)
+                        Text(recipe.notes)
+
+                        Spacer(Modifier.height(20.dp))
+
+                        Button(
+                            onClick = { showTimerSheet = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("Set Timer")
+                        }
+                        Spacer(Modifier.height(12.dp))
+                        Button(
+                            onClick = onBackClick,
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("Go Back") }
+                        Spacer(Modifier.height(12.dp))
+                        Button(
+                            onClick = onEditClick,
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("Edit Recipe") }
+                    }
+                }
+            }
+
+            if (showTimerSheet) {
+                ModalBottomSheet(
+                    onDismissRequest = { showTimerSheet = false },
+                    sheetState = sheetState,
+                    containerColor = Color(0xFFFFB5A7), // Light coral/peach color
+                    shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                ) {
+                    TimerComponent(
+                        minutes = timerState.minutes,
+                        seconds = timerState.seconds,
+                        onMinutesChange = { timerViewModel.setMinutes(it) },
+                        onSecondsChange = { timerViewModel.setSeconds(it) },
+                        onStart = {
+                            timerViewModel.startTimer()
+                            showTimerSheet = false
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 24.dp, vertical = 32.dp)
+                    )
+                }
             }
         }
     }
+}
+        @Composable
+        fun EditRecipeScreen(
+            viewModel: RecipeEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
+            onSaved: () -> Unit,
+            onDeleted: () -> Unit
+        ) {
+            val ui by viewModel.uiState.collectAsStateWithLifecycle()
+            val context = LocalContext.current
+            val scope = rememberCoroutineScope()
 
+            val ingredients = remember { mutableStateListOf<IngredientDraft>() }
+            val instructions = remember { mutableStateListOf<InstructionDraft>() }
 
-@Composable
-    fun EditRecipeScreen(
-viewModel: RecipeEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
-onSaved: () -> Unit,
-onDeleted: () -> Unit
-) {
-    val ui by viewModel.uiState.collectAsStateWithLifecycle()
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
+            var hydrated by remember(ui.recipeId) { mutableStateOf(false) }
 
-    val ingredients = remember { mutableStateListOf<IngredientDraft>() }
-    val instructions = remember { mutableStateListOf<InstructionDraft>() }
+            LaunchedEffect(ui.loaded, ui.recipeId) {
+                if (ui.loaded && !hydrated) {
+                    ingredients.clear()
+                    ingredients.addAll(ui.ingredients)
 
-    var hydrated by remember(ui.recipeId) { mutableStateOf(false) }
+                    instructions.clear()
+                    instructions.addAll(ui.instructions)
 
-    LaunchedEffect(ui.loaded, ui.recipeId) {
-        if (ui.loaded && !hydrated) {
-            ingredients.clear()
-            ingredients.addAll(ui.ingredients)
-
-            instructions.clear()
-            instructions.addAll(ui.instructions)
-
-            hydrated = true
-        }
-    }
-
-    var editingIngredientIndex by remember { mutableStateOf<Int?>(null) }
-    var editingInstructionIndex by remember { mutableStateOf<Int?>(null) }
-
-    editingIngredientIndex
-        ?.takeIf { it in ingredients.indices }
-        ?.let { idx ->
-            EditIngredientDialog(
-                initial = ingredients[idx],
-                onDismiss = { editingIngredientIndex = null },
-                onSave = { updated ->
-                    ingredients[idx] = updated
-                    editingIngredientIndex = null
+                    hydrated = true
                 }
-            )
-        }
+            }
 
-    editingInstructionIndex
-        ?.takeIf { it in instructions.indices }
-        ?.let { idx ->
-            EditInstructionDialog(
-                initial = instructions[idx],
-                onDismiss = { editingInstructionIndex = null },
-                onSave = { updated ->
-                    instructions[idx] = updated
-                    editingInstructionIndex = null
-                }
-            )
-        }
+            var editingIngredientIndex by remember { mutableStateOf<Int?>(null) }
+            var editingInstructionIndex by remember { mutableStateOf<Int?>(null) }
 
-    var pickedImageUri by remember { mutableStateOf<Uri?>(null) }
-
-    Column(
-        Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text("Edit Recipe", style = MaterialTheme.typography.headlineMedium)
-
-        OutlinedTextField(ui.name, viewModel::updateName, label = { Text("Name") }, modifier = Modifier.fillMaxWidth())
-        MealTypeDropdown(ui.mealType, viewModel::updateMealType, Modifier.fillMaxWidth())
-        CategoriesMultiDropdown(ui.categories, viewModel::updateCategories, Modifier.fillMaxWidth())
-
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedTextField(ui.totalTime, viewModel::updateTotalTime, label = { Text("Total time (min)") }, modifier = Modifier.weight(1f))
-            OutlinedTextField(ui.difficulty, viewModel::updateDifficulty, label = { Text("Difficulty (1-5)") }, modifier = Modifier.weight(1f))
-        }
-
-        IngredientsEditor(
-            ingredients = ingredients,
-            onAdd = { ingredients.add(it) },
-            onRemoveAt = { idx -> ingredients.removeAt(idx) },
-            onEditAt = { idx -> editingIngredientIndex = idx },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        InstructionsEditor(
-            instructions = instructions,
-            onAdd = { instructions.add(it) },
-            onRemoveAt = { idx -> instructions.removeAt(idx) },
-            onEditAt = { idx -> editingInstructionIndex = idx },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        OutlinedTextField(ui.notes, viewModel::updateNotes, label = { Text("Notes") }, modifier = Modifier.fillMaxWidth())
-
-        ImagePickerField(
-            existingImagePath = ui.imagePath,
-            pickedImageUri = pickedImageUri,
-            onPick = { pickedImageUri = it },
-            onRemoveExisting = { viewModel.updateImagePath(null) },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Button(
-            onClick = {
-                scope.launch {
-                    val newPath = pickedImageUri?.let { copyImageToInternalStorage(context, it) }
-                    if (newPath != null) viewModel.updateImagePath(newPath)
-
-                    viewModel.save(
-                        ingredientDrafts = ingredients.toList(),
-                        instructionDrafts = instructions.toList(),
-                        onFinished = onSaved
+            editingIngredientIndex
+                ?.takeIf { it in ingredients.indices }
+                ?.let { idx ->
+                    EditIngredientDialog(
+                        initial = ingredients[idx],
+                        onDismiss = { editingIngredientIndex = null },
+                        onSave = { updated ->
+                            ingredients[idx] = updated
+                            editingIngredientIndex = null
+                        }
                     )
                 }
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) { Text("Save Changes") }
 
-        Button(
-            onClick = { viewModel.delete(onDeleted) },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.error,
-                contentColor = MaterialTheme.colorScheme.onError
-            )
-        ) { Text("Delete Recipe") }
+            editingInstructionIndex
+                ?.takeIf { it in instructions.indices }
+                ?.let { idx ->
+                    EditInstructionDialog(
+                        initial = instructions[idx],
+                        onDismiss = { editingInstructionIndex = null },
+                        onSave = { updated ->
+                            instructions[idx] = updated
+                            editingInstructionIndex = null
+                        }
+                    )
+                }
 
-        OutlinedButton(onClick = onSaved, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
-    }
-}
+            var pickedImageUri by remember { mutableStateOf<Uri?>(null) }
 
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text("Edit Recipe", style = MaterialTheme.typography.headlineMedium)
+
+                OutlinedTextField(
+                    ui.name,
+                    viewModel::updateName,
+                    label = { Text("Name") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                MealTypeDropdown(ui.mealType, viewModel::updateMealType, Modifier.fillMaxWidth())
+                CategoriesMultiDropdown(
+                    ui.categories,
+                    viewModel::updateCategories,
+                    Modifier.fillMaxWidth()
+                )
+
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        ui.totalTime,
+                        viewModel::updateTotalTime,
+                        label = { Text("Total time (min)") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        ui.difficulty,
+                        viewModel::updateDifficulty,
+                        label = { Text("Difficulty (1-5)") },
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        ui.servingSize,
+                        viewModel::updateServingSize,
+                        label = { Text("Serving Size") },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                IngredientsEditor(
+                    ingredients = ingredients,
+                    onAdd = { ingredients.add(it) },
+                    onRemoveAt = { idx -> ingredients.removeAt(idx) },
+                    onEditAt = { idx -> editingIngredientIndex = idx },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                InstructionsEditor(
+                    instructions = instructions,
+                    onAdd = { instructions.add(it) },
+                    onRemoveAt = { idx -> instructions.removeAt(idx) },
+                    onEditAt = { idx -> editingInstructionIndex = idx },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    ui.notes,
+                    viewModel::updateNotes,
+                    label = { Text("Notes") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                ImagePickerField(
+                    existingImagePath = ui.imagePath,
+                    pickedImageUri = pickedImageUri,
+                    onPick = { pickedImageUri = it },
+                    onRemoveExisting = { viewModel.updateImagePath(null) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Button(
+                    onClick = {
+                        scope.launch {
+                            val newPath =
+                                pickedImageUri?.let { copyImageToInternalStorage(context, it) }
+                            if (newPath != null) viewModel.updateImagePath(newPath)
+
+                            viewModel.save(
+                                ingredientDrafts = ingredients.toList(),
+                                instructionDrafts = instructions.toList(),
+                                onFinished = onSaved
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Save Changes") }
+
+                Button(
+                    onClick = { viewModel.delete(onDeleted) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    )
+                ) { Text("Delete Recipe") }
+
+                OutlinedButton(
+                    onClick = onSaved,
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Cancel") }
+            }
+        }
 
 
