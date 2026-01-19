@@ -1713,6 +1713,103 @@ fun TimerTopBar(
         }
     }
 }
+@Composable
+private fun ServingsAdjuster(
+    baseServings: Int,
+    desiredServings: Int,
+    onDesiredChange: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var open by remember { mutableStateOf(false) }
+    var input by remember(desiredServings) { mutableStateOf(desiredServings.toString()) }
+
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Text("Servings:", style = MaterialTheme.typography.bodyLarge)
+
+        OutlinedButton(
+            onClick = { open = true },
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+        ) {
+            Text(
+                text = desiredServings.toString(),
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        if (desiredServings != baseServings) {
+            Text(
+                text = "base $baseServings",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            TextButton(onClick = { onDesiredChange(baseServings) }) { Text("Reset") }
+        } else {
+            Text(
+                text = "base",
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+    }
+
+    if (open) {
+        AlertDialog(
+            onDismissRequest = { open = false },
+            title = { Text("Adjust servings") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Base recipe: $baseServings")
+                    OutlinedTextField(
+                        value = input,
+                        onValueChange = { v -> input = v.filter { it.isDigit() }.take(3) },
+                        label = { Text("Servings") },
+                        singleLine = true
+                    )
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    val v = input.toIntOrNull()?.coerceIn(1, 999) ?: baseServings
+                    onDesiredChange(v)
+                    open = false
+                }) { Text("Apply") }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { open = false }) { Text("Cancel") }
+            }
+        )
+    }
+}
+
+private fun parseAmountToDouble(amount: String): Double? {
+    val a = amount.trim().lowercase()
+
+    val mixed = Regex("""^(\d+)\s+(\d+)\s*/\s*(\d+)$""").matchEntire(a)
+    if (mixed != null) {
+        val whole = mixed.groupValues[1].toDouble()
+        val num = mixed.groupValues[2].toDouble()
+        val den = mixed.groupValues[3].toDouble()
+        if (den != 0.0) return whole + (num / den)
+    }
+
+    val frac = Regex("""^(\d+)\s*/\s*(\d+)$""").matchEntire(a)
+    if (frac != null) {
+        val num = frac.groupValues[1].toDouble()
+        val den = frac.groupValues[2].toDouble()
+        if (den != 0.0) return num / den
+    }
+
+    return a.replace(",", ".").toDoubleOrNull()
+}
+
+private fun formatAmount(value: Double): String {
+    val rounded = kotlin.math.round(value * 100.0) / 100.0
+    return if (rounded % 1.0 == 0.0) rounded.toInt().toString()
+    else rounded.toString().trimEnd('0').trimEnd('.')
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1721,25 +1818,37 @@ fun RecipeDetails(
     modifier: Modifier = Modifier,
     onEditClick: () -> Unit = {},
     onBackClick: () -> Unit = {},
-
     timerViewModel: TimerViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
     var showTimerSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val timerState by timerViewModel.timerState.collectAsStateWithLifecycle()
 
-        OutlinedCard(
+    val baseServings = recipe.servingSize.coerceAtLeast(1)
+    var desiredServings by remember(recipe.id) { mutableStateOf(baseServings) }
+    val scaleFactor = desiredServings.toDouble() / baseServings.toDouble()
+
+    OutlinedCard(
         modifier.fillMaxWidth().padding(16.dp)
-        ) {
-                Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState())) {
-                    Text(recipe.name, style = MaterialTheme.typography.headlineLarge)
-                    Spacer(Modifier.height(8.dp))
-            Text("${recipe.mealType} • ${recipe.totalTime} min • Difficulty ${recipe.difficulty} • Serving Size ${recipe.servingSize}")
+    ) {
+        Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState())) {
+            Text(recipe.name, style = MaterialTheme.typography.headlineLarge)
+            Spacer(Modifier.height(8.dp))
+            Text("${recipe.mealType} • ${recipe.totalTime} min • Difficulty ${recipe.difficulty}")
 
                     Spacer(Modifier.height(10.dp))
                     CategoriesChips(categoriesCsv = recipe.categories)
 
-                    Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(12.dp))
+
+            ServingsAdjuster(
+                baseServings = baseServings,
+                desiredServings = desiredServings,
+                onDesiredChange = { desiredServings = it },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(Modifier.height(16.dp))
 
                     if (!recipe.imagePath.isNullOrBlank()) {
                         OutlinedCard(Modifier.fillMaxWidth()) {
@@ -1753,14 +1862,23 @@ fun RecipeDetails(
                         Spacer(Modifier.height(12.dp))
                     }
 
-                    Text("Ingredients:", style = MaterialTheme.typography.titleMedium)
-                    recipe.ingredients.forEach { ing ->
+            Text("Ingredients:", style = MaterialTheme.typography.titleMedium)
+            recipe.ingredients.forEach { ing ->
+                val baseAmountStr = ing.amount?.trim().orEmpty()
+                val baseAmountNum = baseAmountStr.takeIf { it.isNotBlank() }?.let(::parseAmountToDouble)
+
+                val scaledAmountStr = when {
+                    baseAmountNum != null -> formatAmount(baseAmountNum * scaleFactor)
+                    else -> baseAmountStr
+                }
+
                 val amountUnit = listOfNotNull(
-                    ing.amount?.takeIf { it.isNotBlank() },
-                    ing.unit?.takeIf { it.isNotBlank() })
-                            .joinToString(" ")
-                        Text("• ${amountUnit.ifBlank { "" }} ${ing.name}".trim())
-                    }
+                    scaledAmountStr.takeIf { it.isNotBlank() },
+                    ing.unit?.takeIf { it.isNotBlank() }
+                ).joinToString(" ")
+
+                Text("• ${amountUnit.ifBlank { "" }} ${ing.name}".trim())
+            }
 
                     Spacer(Modifier.height(12.dp))
 
@@ -1853,8 +1971,43 @@ onDeleted: () -> Unit
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    val ingredients = remember { mutableStateListOf<IngredientDraft>() }
-    val instructions = remember { mutableStateListOf<InstructionDraft>() }
+    if (showTimerSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showTimerSheet = false },
+            sheetState = sheetState,
+            containerColor = Color(0xFFFFB5A7),
+            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+        ) {
+            TimerComponent(
+                minutes = timerState.minutes,
+                seconds = timerState.seconds,
+                onMinutesChange = { timerViewModel.setMinutes(it) },
+                onSecondsChange = { timerViewModel.setSeconds(it) },
+                onStart = {
+                    timerViewModel.startTimer()
+                    showTimerSheet = false
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 32.dp)
+            )
+        }
+    }
+}
+
+
+        @Composable
+        fun EditRecipeScreen(
+            viewModel: RecipeEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
+            onSaved: () -> Unit,
+            onDeleted: () -> Unit
+        ) {
+            val ui by viewModel.uiState.collectAsStateWithLifecycle()
+            val context = LocalContext.current
+            val scope = rememberCoroutineScope()
+
+            val ingredients = remember { mutableStateListOf<IngredientDraft>() }
+            val instructions = remember { mutableStateListOf<InstructionDraft>() }
 
             var hydrated by remember(ui.recipeId) { mutableStateOf(false) }
 
