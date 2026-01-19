@@ -48,10 +48,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.foundation.Canvas
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.StrokeCap
-
 import java.util.Locale
 
 
@@ -787,169 +783,7 @@ private fun CategoriesMultiDropdown(
     }
 }
 
-@Composable
-fun FilterIcon(
-    tint: Color,
-    modifier: Modifier = Modifier
-) {
-    Canvas(
-        modifier = modifier.size(120.dp)
-    ) {
-        val iconColor = tint
-        val strokeWidth = 12.dp.toPx()
-        val scale = 5f
-        
-        // Draw funnel/filter shape - a triangle pointing down
-        // Top line (wide)
-        drawLine(
-            color = iconColor,
-            start = Offset(6f * scale, 4f * scale),
-            end = Offset(18f * scale, 4f * scale),
-            strokeWidth = strokeWidth,
-            cap = StrokeCap.Round
-        )
-        
-        // Left diagonal line
-        drawLine(
-            color = iconColor,
-            start = Offset(6f * scale, 4f * scale),
-            end = Offset(12f * scale, 20f * scale),
-            strokeWidth = strokeWidth,
-            cap = StrokeCap.Round
-        )
-        
-        // Right diagonal line
-        drawLine(
-            color = iconColor,
-            start = Offset(18f * scale, 4f * scale),
-            end = Offset(12f * scale, 20f * scale),
-            strokeWidth = strokeWidth,
-            cap = StrokeCap.Round
-        )
-        
-        // Draw horizontal lines inside the funnel
-        drawLine(
-            color = iconColor,
-            start = Offset(8f * scale, 8f * scale),
-            end = Offset(16f * scale, 8f * scale),
-            strokeWidth = strokeWidth * 0.6f,
-            cap = StrokeCap.Round
-        )
-        drawLine(
-            color = iconColor,
-            start = Offset(9f * scale, 12f * scale),
-            end = Offset(15f * scale, 12f * scale),
-            strokeWidth = strokeWidth * 0.6f,
-            cap = StrokeCap.Round
-        )
-        drawLine(
-            color = iconColor,
-            start = Offset(10f * scale, 16f * scale),
-            end = Offset(14f * scale, 16f * scale),
-            strokeWidth = strokeWidth * 0.6f,
-            cap = StrokeCap.Round
-        )
-    }
-}
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun CategoryFilterDropdown(
-    selectedCategories: Set<String>,
-    onCategoriesChange: (Set<String>) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var expanded by remember { mutableStateOf(false) }
-    val iconTint = if (selectedCategories.isNotEmpty()) Color(0xFFFFCAD4) else Color.White
-    
-    Box(modifier = modifier) {
-        IconButton(
-            onClick = { expanded = true },
-            modifier = Modifier.size(120.dp)
-        ) {
-            FilterIcon(
-                tint = iconTint,
-                modifier = Modifier.size(120.dp)
-            )
-        }
-        // Show indicator dot if filters are active
-        if (selectedCategories.isNotEmpty()) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .offset(x = (-20).dp, y = 20.dp)
-                    .size(40.dp)
-                    .background(Color(0xFFFFCAD4), RoundedCornerShape(20.dp))
-            )
-        }
-        
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            modifier = Modifier
-                .widthIn(max = 280.dp)
-                .heightIn(max = 400.dp)
-        ) {
-            // Header
-            DropdownMenuItem(
-                text = {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            "Filter by Category",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        if (selectedCategories.isNotEmpty()) {
-                            TextButton(
-                                onClick = {
-                                    onCategoriesChange(emptySet())
-                                    expanded = false
-                                }
-                            ) {
-                                Text("Clear", fontSize = 12.sp)
-                            }
-                        }
-                    }
-                },
-                onClick = { }
-            )
-            
-            HorizontalDivider()
-            
-            // Category list with checkboxes
-            categoriesArr.forEach { category ->
-                val isSelected = selectedCategories.contains(category)
-                DropdownMenuItem(
-                    text = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Checkbox(
-                                checked = isSelected,
-                                onCheckedChange = null
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(category)
-                        }
-                    },
-                    onClick = {
-                        val newSelected = if (isSelected) {
-                            selectedCategories - category
-                        } else {
-                            selectedCategories + category
-                        }
-                        onCategoriesChange(newSelected)
-                    }
-                )
-            }
-        }
-    }
-}
 
 // Wopper Style Homepage
 @Composable
@@ -1434,29 +1268,6 @@ fun CreateRecipeScreen(
 }
 
 
-@Composable
-fun RecipeListItem(
-    recipe: Recipe,
-    onCardClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    OutlinedCard(
-        onClick = onCardClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp),
-    ) {
-        Column(Modifier.padding(16.dp)) {
-            Text(recipe.name, style = MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.height(4.dp))
-            Text("${recipe.mealType} • ${recipe.totalTime} min • Difficulty ${recipe.difficulty}")
-
-            Spacer(Modifier.height(10.dp))
-            CategoriesChips(categoriesCsv = recipe.categories)
-
-        }
-    }
-}
 
 @Composable
 fun RecipeDetailView(
