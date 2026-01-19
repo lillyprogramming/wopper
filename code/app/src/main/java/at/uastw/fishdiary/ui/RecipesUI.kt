@@ -1459,6 +1459,7 @@ fun RecipeDetails(
             val timerState by timerViewModel.timerState.collectAsStateWithLifecycle()
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     Box(modifier = modifier.fillMaxSize()) {
         OutlinedCard(
             modifier = Modifier
@@ -1563,6 +1564,10 @@ fun RecipeDetails(
                         timerViewModel.startTimer()
                         showTimerSheet = false
                     },
+=======
+            Box(modifier = modifier.fillMaxSize()) {
+                OutlinedCard(
+>>>>>>> 6bf92bffb17e64769dda285a4ea134a456551bcd
 =======
             Box(modifier = modifier.fillMaxSize()) {
                 OutlinedCard(
