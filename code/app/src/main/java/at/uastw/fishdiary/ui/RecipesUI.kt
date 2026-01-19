@@ -48,6 +48,9 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
 
 import java.util.Locale
 
@@ -374,15 +377,15 @@ private val mealTypeArr = listOf(
 )
 
 private val categoriesArr = listOf(
-    "Fish",
-    "Seafood",
-    "Pasta",
-    "Healthy",
-    "Quick",
-    "Low Carb",
-    "Spicy",
-    "Kids",
-    "Vegetarian"
+
+    "Vegan", "Vegetarian",
+    "Spicy","Sour","Sweet",
+    "Pasta","whole-grain",
+    "Chicken","Beef","Pork","Seafood",
+    "Nuts", "lactose", "Gluten",
+    "Nut-free", "lactose-free", "Gluten-free",
+    "fasting"
+
 )
 
 
@@ -393,26 +396,26 @@ private val categoriesArr = listOf(
         timerViewModel: TimerViewModel = viewModel(factory = AppViewModelProvider.Factory)
     ) {
         val timerState by timerViewModel.timerState.collectAsStateWithLifecycle()
-        val displayMinutes = if (timerState.isRunning) timerState.remainingTime / 60 else timerState.minutes
-        val displaySeconds = if (timerState.isRunning) timerState.remainingTime % 60 else timerState.seconds
+        val displayMinutes = if (timerState.remainingTime > 0) timerState.remainingTime / 60 else timerState.minutes
+        val displaySeconds = if (timerState.remainingTime > 0) timerState.remainingTime % 60 else timerState.seconds
         val context = LocalContext.current
-
+        
         // Store MediaPlayer reference
         var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
-
+        
         // Play sound when dialog shows
         LaunchedEffect(timerState.showCompletionDialog) {
             if (timerState.showCompletionDialog) {
                 try {
                     // Release previous player if exists
                     mediaPlayer?.release()
-
+                    
                     // Try multiple possible paths and filenames
                     val possiblePaths = listOf(
                         "themes/sounds/sound.mp3",
                         "sounds/sound.mp3"
                     )
-
+                    
                     var player: MediaPlayer?
                     for (path in possiblePaths) {
                         try {
@@ -450,7 +453,7 @@ private val categoriesArr = listOf(
                 mediaPlayer = null
             }
         }
-
+        
         // Cleanup MediaPlayer when composable is disposed
         DisposableEffect(Unit) {
             onDispose {
@@ -466,7 +469,7 @@ private val categoriesArr = listOf(
         // Show completion dialog when timer reaches 0
         if (timerState.showCompletionDialog) {
             AlertDialog(
-                onDismissRequest = {
+                onDismissRequest = { 
                     mediaPlayer?.apply {
                         if (isPlaying) {
                             stop()
@@ -474,11 +477,11 @@ private val categoriesArr = listOf(
                         release()
                     }
                     mediaPlayer = null
-                    timerViewModel.dismissCompletionDialog()
+                    timerViewModel.dismissCompletionDialogAndClear() 
                 },
                 title = { Text("Time is up!") },
                 confirmButton = {
-                    Button(onClick = {
+                    Button(onClick = { 
                         mediaPlayer?.apply {
                             if (isPlaying) {
                                 stop()
@@ -486,7 +489,7 @@ private val categoriesArr = listOf(
                             release()
                         }
                         mediaPlayer = null
-                        timerViewModel.dismissCompletionDialog()
+                        timerViewModel.dismissCompletionDialogAndClear() 
                     }) {
                         Text("OK")
                     }
@@ -496,17 +499,18 @@ private val categoriesArr = listOf(
 
         Box(modifier = modifier.fillMaxSize()) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // Timer bar at the top when running
-                if (timerState.isRunning) {
+                // Timer bar at the top when running or paused
+                if (timerState.remainingTime > 0) {
                     TimerTopBar(
                         minutes = displayMinutes,
                         seconds = displaySeconds,
-                        onPause = { timerViewModel.pauseTimer() },
+                        isRunning = timerState.isRunning,
+                        onTogglePause = { timerViewModel.togglePauseResume() },
                         onClear = { timerViewModel.clearTimer() },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
-
+                
                 NavHost(
                     navController = navController,
                     modifier = Modifier.weight(1f),
@@ -783,7 +787,171 @@ private fun CategoriesMultiDropdown(
     }
 }
 
-// Woopper Style Homepage
+@Composable
+fun FilterIcon(
+    tint: Color,
+    modifier: Modifier = Modifier
+) {
+    Canvas(
+        modifier = modifier.size(120.dp)
+    ) {
+        val iconColor = tint
+        val strokeWidth = 12.dp.toPx()
+        val scale = 5f
+        
+        // Draw funnel/filter shape - a triangle pointing down
+        // Top line (wide)
+        drawLine(
+            color = iconColor,
+            start = Offset(6f * scale, 4f * scale),
+            end = Offset(18f * scale, 4f * scale),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round
+        )
+        
+        // Left diagonal line
+        drawLine(
+            color = iconColor,
+            start = Offset(6f * scale, 4f * scale),
+            end = Offset(12f * scale, 20f * scale),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round
+        )
+        
+        // Right diagonal line
+        drawLine(
+            color = iconColor,
+            start = Offset(18f * scale, 4f * scale),
+            end = Offset(12f * scale, 20f * scale),
+            strokeWidth = strokeWidth,
+            cap = StrokeCap.Round
+        )
+        
+        // Draw horizontal lines inside the funnel
+        drawLine(
+            color = iconColor,
+            start = Offset(8f * scale, 8f * scale),
+            end = Offset(16f * scale, 8f * scale),
+            strokeWidth = strokeWidth * 0.6f,
+            cap = StrokeCap.Round
+        )
+        drawLine(
+            color = iconColor,
+            start = Offset(9f * scale, 12f * scale),
+            end = Offset(15f * scale, 12f * scale),
+            strokeWidth = strokeWidth * 0.6f,
+            cap = StrokeCap.Round
+        )
+        drawLine(
+            color = iconColor,
+            start = Offset(10f * scale, 16f * scale),
+            end = Offset(14f * scale, 16f * scale),
+            strokeWidth = strokeWidth * 0.6f,
+            cap = StrokeCap.Round
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CategoryFilterDropdown(
+    selectedCategories: Set<String>,
+    onCategoriesChange: (Set<String>) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val iconTint = if (selectedCategories.isNotEmpty()) Color(0xFFFFCAD4) else Color.White
+    
+    Box(modifier = modifier) {
+        IconButton(
+            onClick = { expanded = true },
+            modifier = Modifier.size(120.dp)
+        ) {
+            FilterIcon(
+                tint = iconTint,
+                modifier = Modifier.size(120.dp)
+            )
+        }
+        // Show indicator dot if filters are active
+        if (selectedCategories.isNotEmpty()) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = (-20).dp, y = 20.dp)
+                    .size(40.dp)
+                    .background(Color(0xFFFFCAD4), RoundedCornerShape(20.dp))
+            )
+        }
+        
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier
+                .widthIn(max = 280.dp)
+                .heightIn(max = 400.dp)
+        ) {
+            // Header
+            DropdownMenuItem(
+                text = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "Filter by Category",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        if (selectedCategories.isNotEmpty()) {
+                            TextButton(
+                                onClick = {
+                                    onCategoriesChange(emptySet())
+                                    expanded = false
+                                }
+                            ) {
+                                Text("Clear", fontSize = 12.sp)
+                            }
+                        }
+                    }
+                },
+                onClick = { }
+            )
+            
+            HorizontalDivider()
+            
+            // Category list with checkboxes
+            categoriesArr.forEach { category ->
+                val isSelected = selectedCategories.contains(category)
+                DropdownMenuItem(
+                    text = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Checkbox(
+                                checked = isSelected,
+                                onCheckedChange = null
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(category)
+                        }
+                    },
+                    onClick = {
+                        val newSelected = if (isSelected) {
+                            selectedCategories - category
+                        } else {
+                            selectedCategories + category
+                        }
+                        onCategoriesChange(newSelected)
+                    }
+                )
+            }
+        }
+    }
+}
+
+// Wopper Style Homepage
 @Composable
 fun RecipesHomeScreen(
     recipesViewModel: RecipesViewModel = viewModel(factory = AppViewModelProvider.Factory),
@@ -791,9 +959,22 @@ fun RecipesHomeScreen(
     onAddClick: () -> Unit
 ) {
     val recipes by recipesViewModel.recipesUiState.collectAsStateWithLifecycle()
+    var selectedCategories by remember { mutableStateOf<Set<String>>(emptySet()) }
 
-    // Group recipes by meal type
-    val recipesByMealType = recipes.groupBy { it.mealType }
+    // Filter recipes based on selected categories
+    val filteredRecipes = remember(recipes, selectedCategories) {
+        if (selectedCategories.isEmpty()) {
+            recipes
+        } else {
+            recipes.filter { recipe ->
+                val recipeCategories = parseCategoriesCsv(recipe.categories).toSet()
+                recipeCategories.intersect(selectedCategories).isNotEmpty()
+            }
+        }
+    }
+
+    // Group filtered recipes by meal type
+    val recipesByMealType = filteredRecipes.groupBy { it.mealType }
 
     Box(
         modifier = Modifier
@@ -817,7 +998,7 @@ fun RecipesHomeScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 16.dp)
                     ) {
-                        Spacer(Modifier.height(24.dp))
+                        Spacer(Modifier.height(8.dp))
                         Text(
                             text = "wopper",
                             style = MaterialTheme.typography.headlineLarge,
@@ -825,7 +1006,7 @@ fun RecipesHomeScreen(
                             fontSize = 42.sp,
                             color = Color(0xFFFFCAD4)
                         )
-                        Spacer(Modifier.height(24.dp))
+                        Spacer(Modifier.height(8.dp))
                     }
                 }
             }
@@ -851,7 +1032,93 @@ fun RecipesHomeScreen(
             }
         }
 
-        // Floating Action Button for adding recipes
+        // Floating Action Button for filtering recipes (bottom left)
+        var filterMenuExpanded by remember { mutableStateOf(false) }
+        
+        FloatingActionButton(
+            onClick = { filterMenuExpanded = true },
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(24.dp),
+            containerColor = if (selectedCategories.isNotEmpty()) Color(0xFFB0D0D3) else Color(0xFFC08497),
+            contentColor = Color.White
+        ) {
+            Text(
+                text = "F",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                fontSize = 24.sp
+            )
+        }
+        
+        // Category Filter Dropdown Menu
+        DropdownMenu(
+            expanded = filterMenuExpanded,
+            onDismissRequest = { filterMenuExpanded = false },
+            modifier = Modifier
+                .widthIn(max = 280.dp)
+                .heightIn(max = 400.dp)
+        ) {
+            // Header
+            DropdownMenuItem(
+                text = {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "Filter by Category",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        if (selectedCategories.isNotEmpty()) {
+                            TextButton(
+                                onClick = {
+                                    selectedCategories = emptySet()
+                                    filterMenuExpanded = false
+                                }
+                            ) {
+                                Text("Clear", fontSize = 12.sp)
+                            }
+                        }
+                    }
+                },
+                onClick = { }
+            )
+            
+            HorizontalDivider()
+            
+            // Category list with checkboxes
+            categoriesArr.forEach { category ->
+                val isSelected = selectedCategories.contains(category)
+                DropdownMenuItem(
+                    text = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Checkbox(
+                                checked = isSelected,
+                                onCheckedChange = null
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(category)
+                        }
+                    },
+                    onClick = {
+                        val newSelected = if (isSelected) {
+                            selectedCategories - category
+                        } else {
+                            selectedCategories + category
+                        }
+                        selectedCategories = newSelected
+                    }
+                )
+            }
+        }
+
+        // Floating Action Button for adding recipes (bottom right)
         FloatingActionButton(
             onClick = onAddClick,
             modifier = Modifier
@@ -891,7 +1158,7 @@ fun MealTypeSection(
                 .padding(16.dp)
         ) {
             Text(
-                text = "# $mealType",
+                text = mealType,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 fontSize = 28.sp,
@@ -981,7 +1248,7 @@ fun WoopperRecipeCard(
                         model = recipe.imagePath,
                         contentDescription = recipe.name,
                         modifier = Modifier
-                            .fillMaxSize()
+                .fillMaxSize()
                             .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
                         contentScale = ContentScale.Crop
                     )
@@ -1219,7 +1486,7 @@ fun TimerComponent(
     onStart: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-
+    
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -1236,7 +1503,7 @@ fun TimerComponent(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 IconButton(
-                    onClick = {
+                    onClick = { 
                         if (minutes < 99) {
                             onMinutesChange(minutes + 1)
                         }
@@ -1248,16 +1515,16 @@ fun TimerComponent(
                         tint = Color.White
                     )
                 }
-
+                
                 Text(
                     text = String.format(Locale.getDefault(), "%02d", minutes),
                     fontSize = 48.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
-
+                
                 IconButton(
-                    onClick = {
+                    onClick = { 
                         if (minutes > 0) {
                             onMinutesChange(minutes - 1)
                         }
@@ -1270,24 +1537,24 @@ fun TimerComponent(
                     )
                 }
             }
-
+            
             Text(
                 text = ":",
                 fontSize = 48.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White
             )
-
+            
             // Seconds
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 IconButton(
-                    onClick = {
+                    onClick = { 
                         if (seconds < 50) {
                             onSecondsChange(seconds + 10)
-                        } else {
+                        } else { 
                             onSecondsChange(0)
                             if (minutes < 99) onMinutesChange(minutes + 1)
                         }
@@ -1299,19 +1566,19 @@ fun TimerComponent(
                         tint = Color.White
                     )
                 }
-
+                
                 Text(
                     text = String.format(Locale.getDefault(), "%02d", seconds),
                     fontSize = 48.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
-
+                
                 IconButton(
-                    onClick = {
+                    onClick = { 
                         if (seconds > 0) {
                             onSecondsChange(seconds - 10)
-                        } else {
+                        } else { 
                             onSecondsChange(50)
                             if (minutes > 0) onMinutesChange(minutes - 1)
                         }
@@ -1324,9 +1591,9 @@ fun TimerComponent(
                     )
                 }
             }
-
+            
             Spacer(Modifier.width(16.dp))
-
+            
             // Play Button
             FloatingActionButton(
                 onClick = {
@@ -1345,10 +1612,10 @@ fun TimerComponent(
                 )
             }
         }
-
+        
         // Reset button
         if (minutes > 0 || seconds > 0) {
-            TextButton(onClick = {
+            TextButton(onClick = { 
                 onMinutesChange(0)
                 onSecondsChange(0)
             }) {
@@ -1362,7 +1629,8 @@ fun TimerComponent(
 fun TimerTopBar(
     minutes: Int,
     seconds: Int,
-    onPause: () -> Unit,
+    isRunning: Boolean,
+    onTogglePause: () -> Unit,
     onClear: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -1384,38 +1652,48 @@ fun TimerTopBar(
                 color = Color.White,
                 fontWeight = FontWeight.Bold
             )
-
+            
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Pause button
-                IconButton(onClick = onPause) {
-                    // Custom pause icon (two rectangles)
-                    Box(
-                        modifier = Modifier.size(24.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                // Pause/Resume toggle button
+                IconButton(onClick = onTogglePause) {
+                    if (isRunning) {
+                        // Pause icon (two rectangles)
+                        Box(
+                            modifier = Modifier.size(24.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .width(6.dp)
-                                    .height(16.dp)
-                                    .background(Color.White, RoundedCornerShape(1.dp))
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .width(6.dp)
-                                    .height(16.dp)
-                                    .background(Color.White, RoundedCornerShape(1.dp))
-                            )
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .width(6.dp)
+                                        .height(16.dp)
+                                        .background(Color.White, RoundedCornerShape(1.dp))
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .width(6.dp)
+                                        .height(16.dp)
+                                        .background(Color.White, RoundedCornerShape(1.dp))
+                                )
+                            }
                         }
+                    } else {
+                        // Play icon (resume)
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = "Resume",
+                            tint = Color.White,
+                            modifier = Modifier.size(24.dp)
+                        )
                     }
                 }
-
+                
                 // Clear/Stop button (X icon)
                 IconButton(onClick = onClear) {
                     // Custom X icon (clear/stop)
@@ -1450,43 +1728,43 @@ fun RecipeDetails(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val timerState by timerViewModel.timerState.collectAsStateWithLifecycle()
 
-    OutlinedCard(
+        OutlinedCard(
         modifier.fillMaxWidth().padding(16.dp)
-    ) {
-        Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState())) {
-            Text(recipe.name, style = MaterialTheme.typography.headlineLarge)
-            Spacer(Modifier.height(8.dp))
+        ) {
+                Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState())) {
+                    Text(recipe.name, style = MaterialTheme.typography.headlineLarge)
+                    Spacer(Modifier.height(8.dp))
             Text("${recipe.mealType} • ${recipe.totalTime} min • Difficulty ${recipe.difficulty} • Serving Size ${recipe.servingSize}")
 
-            Spacer(Modifier.height(10.dp))
-            CategoriesChips(categoriesCsv = recipe.categories)
+                    Spacer(Modifier.height(10.dp))
+                    CategoriesChips(categoriesCsv = recipe.categories)
 
-            Spacer(Modifier.height(16.dp))
+                    Spacer(Modifier.height(16.dp))
 
-            if (!recipe.imagePath.isNullOrBlank()) {
-                OutlinedCard(Modifier.fillMaxWidth()) {
-                    AsyncImage(
-                        model = recipe.imagePath,
-                        contentDescription = "Recipe image",
-                        modifier = Modifier.fillMaxWidth().height(220.dp),
-                        contentScale = ContentScale.Crop
-                    )
-                }
-                Spacer(Modifier.height(12.dp))
-            }
+                    if (!recipe.imagePath.isNullOrBlank()) {
+                        OutlinedCard(Modifier.fillMaxWidth()) {
+                            AsyncImage(
+                                model = recipe.imagePath,
+                                contentDescription = "Recipe image",
+                                modifier = Modifier.fillMaxWidth().height(220.dp),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                        Spacer(Modifier.height(12.dp))
+                    }
 
-            Text("Ingredients:", style = MaterialTheme.typography.titleMedium)
-            recipe.ingredients.forEach { ing ->
+                    Text("Ingredients:", style = MaterialTheme.typography.titleMedium)
+                    recipe.ingredients.forEach { ing ->
                 val amountUnit = listOfNotNull(
                     ing.amount?.takeIf { it.isNotBlank() },
                     ing.unit?.takeIf { it.isNotBlank() })
-                    .joinToString(" ")
-                Text("• ${amountUnit.ifBlank { "" }} ${ing.name}".trim())
-            }
+                            .joinToString(" ")
+                        Text("• ${amountUnit.ifBlank { "" }} ${ing.name}".trim())
+                    }
 
-            Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(12.dp))
 
-            Text("Instructions:", style = MaterialTheme.typography.titleMedium)
+                    Text("Instructions:", style = MaterialTheme.typography.titleMedium)
             recipe.instructions
                 .sortedBy { it.stepNumber }
                 .forEach { step ->
@@ -1514,78 +1792,78 @@ fun RecipeDetails(
                             }
                         }
                     }
-                }
+                    }
 
-            Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(12.dp))
 
-            Text("Notes:", style = MaterialTheme.typography.titleMedium)
-            Text(recipe.notes)
+                    Text("Notes:", style = MaterialTheme.typography.titleMedium)
+                    Text(recipe.notes)
 
-            Spacer(Modifier.height(20.dp))
+                    Spacer(Modifier.height(20.dp))
 
             Button(
                 onClick = { showTimerSheet = true },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Set Timer")
-            }
-            Spacer(Modifier.height(12.dp))
+                        Text("Set Timer") 
+                    }
+                    Spacer(Modifier.height(12.dp))
             Button(
                 onClick = onBackClick,
                 modifier = Modifier.fillMaxWidth()
             ) { Text("Go Back") }
-            Spacer(Modifier.height(12.dp))
+                    Spacer(Modifier.height(12.dp))
             Button(
                 onClick = onEditClick,
                 modifier = Modifier.fillMaxWidth()
             ) { Text("Edit Recipe") }
+            }
+        }
+
+        if (showTimerSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showTimerSheet = false },
+                sheetState = sheetState,
+                containerColor = Color(0xFFFFB5A7), // Light coral/peach color
+                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+            ) {
+                TimerComponent(
+                    minutes = timerState.minutes,
+                    seconds = timerState.seconds,
+                    onMinutesChange = { timerViewModel.setMinutes(it) },
+                    onSecondsChange = { timerViewModel.setSeconds(it) },
+                    onStart = {
+                        timerViewModel.startTimer()
+                        showTimerSheet = false
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp, vertical = 32.dp)
+                )
+            }
         }
     }
+@Composable
+    fun EditRecipeScreen(
+viewModel: RecipeEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
+onSaved: () -> Unit,
+onDeleted: () -> Unit
+) {
+    val ui by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
-    if (showTimerSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showTimerSheet = false },
-            sheetState = sheetState,
-            containerColor = Color(0xFFFFB5A7), // Light coral/peach color
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
-        ) {
-            TimerComponent(
-                minutes = timerState.minutes,
-                seconds = timerState.seconds,
-                onMinutesChange = { timerViewModel.setMinutes(it) },
-                onSecondsChange = { timerViewModel.setSeconds(it) },
-                onStart = {
-                    timerViewModel.startTimer()
-                    showTimerSheet = false
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 32.dp)
-            )
-        }
-    }
-}
-        @Composable
-        fun EditRecipeScreen(
-            viewModel: RecipeEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
-            onSaved: () -> Unit,
-            onDeleted: () -> Unit
-        ) {
-            val ui by viewModel.uiState.collectAsStateWithLifecycle()
-            val context = LocalContext.current
-            val scope = rememberCoroutineScope()
-
-            val ingredients = remember { mutableStateListOf<IngredientDraft>() }
-            val instructions = remember { mutableStateListOf<InstructionDraft>() }
+    val ingredients = remember { mutableStateListOf<IngredientDraft>() }
+    val instructions = remember { mutableStateListOf<InstructionDraft>() }
 
             var hydrated by remember(ui.recipeId) { mutableStateOf(false) }
 
             LaunchedEffect(ui.loaded, ui.recipeId) {
                 if (ui.loaded && !hydrated) {
-                    ingredients.clear()
+        ingredients.clear()
                     ingredients.addAll(ui.ingredients)
 
-                    instructions.clear()
+        instructions.clear()
                     instructions.addAll(ui.instructions)
 
                     hydrated = true
@@ -1619,18 +1897,18 @@ fun RecipeDetails(
                             editingInstructionIndex = null
                         }
                     )
-                }
+    }
 
-            var pickedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var pickedImageUri by remember { mutableStateOf<Uri?>(null) }
 
-            Column(
-                Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text("Edit Recipe", style = MaterialTheme.typography.headlineMedium)
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text("Edit Recipe", style = MaterialTheme.typography.headlineMedium)
 
                 OutlinedTextField(
                     ui.name,
@@ -1638,14 +1916,14 @@ fun RecipeDetails(
                     label = { Text("Name") },
                     modifier = Modifier.fillMaxWidth()
                 )
-                MealTypeDropdown(ui.mealType, viewModel::updateMealType, Modifier.fillMaxWidth())
+        MealTypeDropdown(ui.mealType, viewModel::updateMealType, Modifier.fillMaxWidth())
                 CategoriesMultiDropdown(
                     ui.categories,
                     viewModel::updateCategories,
                     Modifier.fillMaxWidth()
                 )
 
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
                         ui.totalTime,
                         viewModel::updateTotalTime,
@@ -1664,23 +1942,23 @@ fun RecipeDetails(
                         label = { Text("Serving Size") },
                         modifier = Modifier.weight(1f)
                     )
-                }
+        }
 
-                IngredientsEditor(
-                    ingredients = ingredients,
-                    onAdd = { ingredients.add(it) },
-                    onRemoveAt = { idx -> ingredients.removeAt(idx) },
+        IngredientsEditor(
+            ingredients = ingredients,
+            onAdd = { ingredients.add(it) },
+            onRemoveAt = { idx -> ingredients.removeAt(idx) },
                     onEditAt = { idx -> editingIngredientIndex = idx },
-                    modifier = Modifier.fillMaxWidth()
-                )
+            modifier = Modifier.fillMaxWidth()
+        )
 
-                InstructionsEditor(
-                    instructions = instructions,
-                    onAdd = { instructions.add(it) },
-                    onRemoveAt = { idx -> instructions.removeAt(idx) },
+        InstructionsEditor(
+            instructions = instructions,
+            onAdd = { instructions.add(it) },
+            onRemoveAt = { idx -> instructions.removeAt(idx) },
                     onEditAt = { idx -> editingInstructionIndex = idx },
-                    modifier = Modifier.fillMaxWidth()
-                )
+            modifier = Modifier.fillMaxWidth()
+        )
 
                 OutlinedTextField(
                     ui.notes,
@@ -1689,45 +1967,45 @@ fun RecipeDetails(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                ImagePickerField(
-                    existingImagePath = ui.imagePath,
-                    pickedImageUri = pickedImageUri,
-                    onPick = { pickedImageUri = it },
-                    onRemoveExisting = { viewModel.updateImagePath(null) },
-                    modifier = Modifier.fillMaxWidth()
-                )
+        ImagePickerField(
+            existingImagePath = ui.imagePath,
+            pickedImageUri = pickedImageUri,
+            onPick = { pickedImageUri = it },
+            onRemoveExisting = { viewModel.updateImagePath(null) },
+            modifier = Modifier.fillMaxWidth()
+        )
 
-                Button(
-                    onClick = {
-                        scope.launch {
+        Button(
+            onClick = {
+                scope.launch {
                             val newPath =
                                 pickedImageUri?.let { copyImageToInternalStorage(context, it) }
-                            if (newPath != null) viewModel.updateImagePath(newPath)
+                    if (newPath != null) viewModel.updateImagePath(newPath)
 
                             viewModel.save(
                                 ingredientDrafts = ingredients.toList(),
                                 instructionDrafts = instructions.toList(),
                                 onFinished = onSaved
                             )
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("Save Changes") }
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("Save Changes") }
 
-                Button(
+        Button(
                     onClick = { viewModel.delete(onDeleted) },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
-                        contentColor = MaterialTheme.colorScheme.onError
-                    )
-                ) { Text("Delete Recipe") }
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.error,
+                contentColor = MaterialTheme.colorScheme.onError
+            )
+        ) { Text("Delete Recipe") }
 
                 OutlinedButton(
                     onClick = onSaved,
                     modifier = Modifier.fillMaxWidth()
                 ) { Text("Cancel") }
-            }
-        }
+    }
+}
 
 

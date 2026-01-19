@@ -9,10 +9,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class TimerState(
-    val minutes: Int = 1,
+    val minutes: Int = 0,
     val seconds: Int = 0,
     val isRunning: Boolean = false,
-    val remainingTime: Int = 10 * 60, // in seconds
+    val remainingTime: Int = 0, // in seconds
     val showCompletionDialog: Boolean = false
 )
 
@@ -86,6 +86,26 @@ class TimerViewModel : ViewModel() {
         _timerState.update { it.copy(isRunning = false) }
     }
 
+    fun resumeTimer() {
+        _timerState.update { state ->
+            if (state.remainingTime > 0) {
+                state.copy(isRunning = true)
+            } else {
+                state
+            }
+        }
+    }
+
+    fun togglePauseResume() {
+        _timerState.update { state ->
+            if (state.remainingTime > 0) {
+                state.copy(isRunning = !state.isRunning)
+            } else {
+                state
+            }
+        }
+    }
+
     fun clearTimer() {
         _timerState.update {
             TimerState()
@@ -93,6 +113,14 @@ class TimerViewModel : ViewModel() {
     }
 
     fun dismissCompletionDialog() {
-        _timerState.update { it.copy(showCompletionDialog = false) }
+        _timerState.update { 
+            it.copy(showCompletionDialog = false)
+        }
+    }
+    
+    fun dismissCompletionDialogAndClear() {
+        _timerState.update {
+            TimerState()
+        }
     }
 }
