@@ -51,6 +51,47 @@ import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.ui.Alignment
 
 import java.util.Locale
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import kotlinx.coroutines.delay
+
+@Composable
+private fun DigitsOnlyField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    maxDigits: Int = 4,
+    min: Int? = null,
+    max: Int? = null
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = { v ->
+            val filtered = v.filter { it.isDigit() }.take(maxDigits)
+            if (filtered.isBlank()) {
+                onValueChange("")
+            } else {
+                val n0 = filtered.toIntOrNull()
+                if (n0 == null) onValueChange("")
+                else {
+                    val n1 = min?.let { kotlin.math.max(it, n0) } ?: n0
+                    val n2 = max?.let { kotlin.math.min(it, n1) } ?: n1
+                    onValueChange(n2.toString())
+                }
+            }
+        },
+        label = label,
+        modifier = modifier
+    )
+}
+
+
+private suspend fun scrollToField(requester: BringIntoViewRequester) {
+    // tiny delay so composition/measurement settles before scrolling
+    delay(50)
+    requester.bringIntoView()
+}
 
 
 enum class Routes(val route: String) {
@@ -134,7 +175,10 @@ private fun EditIngredientDialog(
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(
                         value = amount,
-                        onValueChange = { amount = it },
+                        onValueChange = { v ->
+                            amount = v.filter { it.isDigit() || it == ' ' || it == '/' || it == '.' || it == ',' }
+                                .take(20)
+                        },
                         label = { Text("Amount") },
                         modifier = Modifier.weight(1f)
                     )
@@ -183,11 +227,13 @@ private fun EditInstructionDialog(
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 2
                 )
-                OutlinedTextField(
+                DigitsOnlyField(
                     value = timer,
                     onValueChange = { timer = it },
                     label = { Text("Timer (min, optional)") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    maxDigits = 3,
+                    min = 0
                 )
             }
         },
@@ -202,7 +248,6 @@ private fun EditInstructionDialog(
         }
     )
 }
-
 
 @Composable
 private fun IngredientsEditor(
@@ -224,7 +269,10 @@ private fun IngredientsEditor(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             OutlinedTextField(
                 value = amount,
-                onValueChange = { amount = it },
+                onValueChange = { v ->
+                    amount = v.filter { it.isDigit() || it == ' ' || it == '/' || it == '.' || it == ',' }
+                        .take(20)
+                },
                 label = { Text("Amount") },
                 modifier = Modifier.weight(1f)
             )
@@ -288,7 +336,6 @@ private fun IngredientsEditor(
     }
 }
 
-
 @Composable
 private fun InstructionsEditor(
     instructions: List<InstructionDraft>,
@@ -315,12 +362,15 @@ private fun InstructionsEditor(
 
         Spacer(Modifier.height(10.dp))
 
-        OutlinedTextField(
+        DigitsOnlyField(
             value = timer,
             onValueChange = { timer = it },
             label = { Text("Timer (minute, optional)") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            maxDigits = 3,
+            min = 0
         )
+
 
         Spacer(Modifier.height(10.dp))
 
@@ -359,6 +409,8 @@ private fun InstructionsEditor(
         }
     }
 }
+
+
 
 
 private val mealTypeArr = listOf(
@@ -1140,9 +1192,13 @@ fun CreateRecipeScreen(
     var notes by remember { mutableStateOf("") }
     var servingSize by remember { mutableStateOf("") }
 
+    // NEW: validation UI bits
+    val snackbarHostState = remember { SnackbarHostState() }
+    val nameBivr = remember { BringIntoViewRequester() }
+    val mealTypeBivr = remember { BringIntoViewRequester() }
+
     var editingIngredientIndex by remember { mutableStateOf<Int?>(null) }
     var editingInstructionIndex by remember { mutableStateOf<Int?>(null) }
-
     editingIngredientIndex
         ?.takeIf { it in ingredients.indices }
         ?.let { idx ->
@@ -1172,101 +1228,165 @@ fun CreateRecipeScreen(
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-
     var pickedImageUri by remember { mutableStateOf<Uri?>(null) }
 
-    Column(
-        Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text("Create Recipe", style = MaterialTheme.typography.headlineMedium)
+    Box(Modifier.fillMaxSize()) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text("Create Recipe", style = MaterialTheme.typography.headlineMedium)
 
-        OutlinedTextField(name, { name = it }, label = { Text("Name") }, modifier = Modifier.fillMaxWidth())
-        MealTypeDropdown(mealType, { mealType = it }, Modifier.fillMaxWidth())
-        CategoriesMultiDropdown(categories, { categories = it }, Modifier.fillMaxWidth())
+            // REQUIRED: Name
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("Name") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .bringIntoViewRequester(nameBivr)
+            )
 
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedTextField(totalTime, { totalTime = it }, label = { Text("Total time (min)") }, modifier = Modifier.weight(1f))
-            OutlinedTextField(difficulty, { difficulty = it }, label = { Text("Difficulty (1-5)") }, modifier = Modifier.weight(1f))
-            OutlinedTextField(servingSize, { servingSize = it }, label = { Text("Serving Size") }, modifier = Modifier.weight(1f))
+            // REQUIRED: Meal type (dropdown)
+            Box(Modifier.bringIntoViewRequester(mealTypeBivr)) {
+                MealTypeDropdown(mealType, { mealType = it }, Modifier.fillMaxWidth())
+            }
+
+            CategoriesMultiDropdown(categories, { categories = it }, Modifier.fillMaxWidth())
+
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                DigitsOnlyField(
+                    value = totalTime,
+                    onValueChange = { totalTime = it },
+                    label = { Text("Total time (min)") },
+                    modifier = Modifier.weight(1f),
+                    maxDigits = 4,
+                    min = 0
+                )
+                DigitsOnlyField(
+                    value = difficulty,
+                    onValueChange = { difficulty = it },
+                    label = { Text("Difficulty (1-5)") },
+                    modifier = Modifier.weight(1f),
+                    maxDigits = 1,
+                    min = 1,
+                    max = 5
+                )
+                DigitsOnlyField(
+                    value = servingSize,
+                    onValueChange = { servingSize = it },
+                    label = { Text("Serving Size") },
+                    modifier = Modifier.weight(1f),
+                    maxDigits = 3,
+                    min = 1
+                )
+
+            }
+
+            IngredientsEditor(
+                ingredients = ingredients,
+                onAdd = { ingredients.add(it) },
+                onRemoveAt = { idx -> ingredients.removeAt(idx) },
+                onEditAt = { idx -> editingIngredientIndex = idx },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            InstructionsEditor(
+                instructions = instructions,
+                onAdd = { instructions.add(it) },
+                onRemoveAt = { idx -> instructions.removeAt(idx) },
+                onEditAt = { idx -> editingInstructionIndex = idx },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = notes,
+                onValueChange = { notes = it },
+                label = { Text("Notes (Optional)") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            ImagePickerField(
+                existingImagePath = null,
+                pickedImageUri = pickedImageUri,
+                onPick = { pickedImageUri = it },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Button(
+                onClick = {
+                    scope.launch {
+                        // REQUIRED validation (only messages for missing required)
+                        val trimmedName = name.trim()
+                        if (trimmedName.isBlank()) {
+                            scrollToField(nameBivr)
+                            snackbarHostState.showSnackbar("Name is required")
+                            return@launch
+                        }
+                        if (mealType.isBlank()) {
+                            scrollToField(mealTypeBivr)
+                            snackbarHostState.showSnackbar("Meal type is required")
+                            return@launch
+                        }
+
+                        val total = totalTime.toIntOrNull() ?: 0
+                        val diff = (difficulty.toIntOrNull() ?: 1).coerceIn(1, 5)
+                        val serveSize = (servingSize.toIntOrNull() ?: 1).coerceAtLeast(1)
+
+                        val ingredientList = ingredients.map {
+                            Ingredient(
+                                recipeId = 0,
+                                name = it.name,
+                                amount = it.amount.ifBlank { null },
+                                unit = it.unit.ifBlank { null }
+                            )
+                        }
+
+                        val instructionList = instructions.mapIndexed { idx, s ->
+                            Instruction(
+                                recipeId = 0,
+                                stepNumber = idx + 1,
+                                text = s.text,
+                                timer = s.timer.toIntOrNull() ?: 0
+                            )
+                        }
+
+                        val savedPath = pickedImageUri?.let { copyImageToInternalStorage(context, it) }
+
+                        addRecipeViewModel.addRecipe(
+                            name = trimmedName,
+                            mealType = mealType,
+                            categories = categories.joinToString(","),
+                            imagePath = savedPath,
+                            ingredients = ingredientList,
+                            instructions = instructionList,
+                            notes = notes,
+                            totalTime = total,
+                            difficulty = diff,
+                            servingSize = serveSize,
+                        )
+                        onFinished()
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Save") }
+
+            OutlinedButton(onClick = onFinished, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
         }
 
-        IngredientsEditor(
-            ingredients = ingredients,
-            onAdd = { ingredients.add(it) },
-            onRemoveAt = { idx -> ingredients.removeAt(idx) },
-            onEditAt = { idx -> editingIngredientIndex = idx },
-            modifier = Modifier.fillMaxWidth()
+        // NEW: snackbar host (small & unobtrusive)
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(16.dp)
         )
-
-        InstructionsEditor(
-            instructions = instructions,
-            onAdd = { instructions.add(it) },
-            onRemoveAt = { idx -> instructions.removeAt(idx) },
-            onEditAt = { idx -> editingInstructionIndex = idx },
-            modifier = Modifier.fillMaxWidth()
-        )
-        OutlinedTextField(notes, { notes = it }, label = { Text("Notes (Optional)") }, modifier = Modifier.fillMaxWidth())
-
-        ImagePickerField(
-            existingImagePath = null,
-            pickedImageUri = pickedImageUri,
-            onPick = { pickedImageUri = it },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Button(
-            onClick = {
-                if (mealType.isBlank() || name.isBlank()) return@Button
-
-                val total = totalTime.toIntOrNull() ?: 0
-                val diff = difficulty.toIntOrNull() ?: 1
-                val serveSize = servingSize.toIntOrNull() ?: 1
-
-                val ingredientList = ingredients.map {
-                    Ingredient(
-                        recipeId = 0,
-                        name = it.name,
-                        amount = it.amount.ifBlank { null },
-                        unit = it.unit.ifBlank { null }
-                    )
-                }
-
-                val instructionList = instructions.mapIndexed { idx, s ->
-                    Instruction(
-                        recipeId = 0,
-                        stepNumber = idx + 1,
-                        text = s.text,
-                        timer = s.timer.toIntOrNull() ?: 0
-                    )
-                }
-                scope.launch {
-                    val savedPath = pickedImageUri?.let { copyImageToInternalStorage(context, it) }
-
-                    addRecipeViewModel.addRecipe(
-                        name = name,
-                        mealType = mealType,
-                        categories = categories.joinToString(","),
-                        imagePath = savedPath,
-                        ingredients = ingredientList,
-                        instructions = instructionList,
-                        notes = notes,
-                        totalTime = total,
-                        difficulty = diff,
-                        servingSize = serveSize,
-                    )
-                    onFinished()
-                }
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) { Text("Save") }
-
-        OutlinedButton(onClick = onFinished, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
     }
 }
+
 
 
 
@@ -1576,10 +1696,15 @@ private fun ServingsAdjuster(
                     Text("Base recipe: $baseServings")
                     OutlinedTextField(
                         value = input,
-                        onValueChange = { v -> input = v.filter { it.isDigit() }.take(3) },
+                        onValueChange = { v ->
+                            val filtered = v.filter { it.isDigit() }.take(3)
+                            input = if (filtered.isBlank()) ""
+                            else (filtered.toIntOrNull()?.coerceIn(1, 999) ?: baseServings).toString()
+                        },
                         label = { Text("Servings") },
                         singleLine = true
                     )
+
                 }
             },
             confirmButton = {
@@ -1804,7 +1929,6 @@ fun EditRecipeScreen(
 
     var editingIngredientIndex by remember { mutableStateOf<Int?>(null) }
     var editingInstructionIndex by remember { mutableStateOf<Int?>(null) }
-
     editingIngredientIndex
         ?.takeIf { it in ingredients.indices }
         ?.let { idx ->
@@ -1831,113 +1955,157 @@ fun EditRecipeScreen(
             )
         }
 
+
     var pickedImageUri by remember { mutableStateOf<Uri?>(null) }
 
-    Column(
-        Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text("Edit Recipe", style = MaterialTheme.typography.headlineMedium)
+    // NEW: validation UI bits
+    val snackbarHostState = remember { SnackbarHostState() }
+    val nameBivr = remember { BringIntoViewRequester() }
+    val mealTypeBivr = remember { BringIntoViewRequester() }
 
-        OutlinedTextField(
-            ui.name,
-            viewModel::updateName,
-            label = { Text("Name") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        MealTypeDropdown(ui.mealType, viewModel::updateMealType, Modifier.fillMaxWidth())
-        CategoriesMultiDropdown(
-            ui.categories,
-            viewModel::updateCategories,
-            Modifier.fillMaxWidth()
-        )
+    Box(Modifier.fillMaxSize()) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text("Edit Recipe", style = MaterialTheme.typography.headlineMedium)
 
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            // REQUIRED: Name
             OutlinedTextField(
-                ui.totalTime,
-                viewModel::updateTotalTime,
-                label = { Text("Total time (min)") },
-                modifier = Modifier.weight(1f)
+                value = ui.name,
+                onValueChange = viewModel::updateName,
+                label = { Text("Name") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .bringIntoViewRequester(nameBivr)
             )
+
+            // REQUIRED: Meal type
+            Box(Modifier.bringIntoViewRequester(mealTypeBivr)) {
+                MealTypeDropdown(ui.mealType, viewModel::updateMealType, Modifier.fillMaxWidth())
+            }
+
+            CategoriesMultiDropdown(
+                ui.categories,
+                viewModel::updateCategories,
+                Modifier.fillMaxWidth()
+            )
+
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                DigitsOnlyField(
+                    value = ui.totalTime,
+                    onValueChange = viewModel::updateTotalTime,
+                    label = { Text("Total time (min)") },
+                    modifier = Modifier.weight(1f),
+                    maxDigits = 4,
+                    min = 0
+                )
+                DigitsOnlyField(
+                    value = ui.difficulty,
+                    onValueChange = viewModel::updateDifficulty,
+                    label = { Text("Difficulty (1-5)") },
+                    modifier = Modifier.weight(1f),
+                    maxDigits = 1,
+                    min = 1,
+                    max = 5
+                )
+                DigitsOnlyField(
+                    value = ui.servingSize,
+                    onValueChange = viewModel::updateServingSize,
+                    label = { Text("Serving Size") },
+                    modifier = Modifier.weight(1f),
+                    maxDigits = 3,
+                    min = 1
+                )
+
+            }
+
+            IngredientsEditor(
+                ingredients = ingredients,
+                onAdd = { ingredients.add(it) },
+                onRemoveAt = { idx -> ingredients.removeAt(idx) },
+                onEditAt = { idx -> editingIngredientIndex = idx },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            InstructionsEditor(
+                instructions = instructions,
+                onAdd = { instructions.add(it) },
+                onRemoveAt = { idx -> instructions.removeAt(idx) },
+                onEditAt = { idx -> editingInstructionIndex = idx },
+                modifier = Modifier.fillMaxWidth()
+            )
+
             OutlinedTextField(
-                ui.difficulty,
-                viewModel::updateDifficulty,
-                label = { Text("Difficulty (1-5)") },
-                modifier = Modifier.weight(1f)
+                value = ui.notes,
+                onValueChange = viewModel::updateNotes,
+                label = { Text("Notes") },
+                modifier = Modifier.fillMaxWidth()
             )
-            OutlinedTextField(
-                ui.servingSize,
-                viewModel::updateServingSize,
-                label = { Text("Serving Size") },
-                modifier = Modifier.weight(1f)
+
+            ImagePickerField(
+                existingImagePath = ui.imagePath,
+                pickedImageUri = pickedImageUri,
+                onPick = { pickedImageUri = it },
+                onRemoveExisting = { viewModel.updateImagePath(null) },
+                modifier = Modifier.fillMaxWidth()
             )
+
+            Button(
+                onClick = {
+                    scope.launch {
+                        val trimmedName = ui.name.trim()
+                        if (trimmedName.isBlank()) {
+                            scrollToField(nameBivr)
+                            snackbarHostState.showSnackbar("Name is required")
+                            return@launch
+                        }
+                        if (ui.mealType.isBlank()) {
+                            scrollToField(mealTypeBivr)
+                            snackbarHostState.showSnackbar("Meal type is required")
+                            return@launch
+                        }
+
+                        // store copied image if picked
+                        val newPath = pickedImageUri?.let { copyImageToInternalStorage(context, it) }
+                        if (newPath != null) viewModel.updateImagePath(newPath)
+
+                        viewModel.save(
+                            ingredientDrafts = ingredients.toList(),
+                            instructionDrafts = instructions.toList(),
+                            onFinished = onSaved
+                        )
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Save Changes") }
+
+            Button(
+                onClick = { viewModel.delete(onDeleted) },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError
+                )
+            ) { Text("Delete Recipe") }
+
+            OutlinedButton(
+                onClick = onSaved,
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Cancel") }
         }
 
-        IngredientsEditor(
-            ingredients = ingredients,
-            onAdd = { ingredients.add(it) },
-            onRemoveAt = { idx -> ingredients.removeAt(idx) },
-            onEditAt = { idx -> editingIngredientIndex = idx },
-            modifier = Modifier.fillMaxWidth()
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(16.dp)
         )
-
-        InstructionsEditor(
-            instructions = instructions,
-            onAdd = { instructions.add(it) },
-            onRemoveAt = { idx -> instructions.removeAt(idx) },
-            onEditAt = { idx -> editingInstructionIndex = idx },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        OutlinedTextField(
-            ui.notes,
-            viewModel::updateNotes,
-            label = { Text("Notes") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        ImagePickerField(
-            existingImagePath = ui.imagePath,
-            pickedImageUri = pickedImageUri,
-            onPick = { pickedImageUri = it },
-            onRemoveExisting = { viewModel.updateImagePath(null) },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Button(
-            onClick = {
-                scope.launch {
-                    val newPath =
-                        pickedImageUri?.let { copyImageToInternalStorage(context, it) }
-                    if (newPath != null) viewModel.updateImagePath(newPath)
-
-                    viewModel.save(
-                        ingredientDrafts = ingredients.toList(),
-                        instructionDrafts = instructions.toList(),
-                        onFinished = onSaved
-                    )
-                }
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) { Text("Save Changes") }
-
-        Button(
-            onClick = { viewModel.delete(onDeleted) },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.error,
-                contentColor = MaterialTheme.colorScheme.onError
-            )
-        ) { Text("Delete Recipe") }
-
-        OutlinedButton(
-            onClick = onSaved,
-            modifier = Modifier.fillMaxWidth()
-        ) { Text("Cancel") }
     }
 }
+
 
 
