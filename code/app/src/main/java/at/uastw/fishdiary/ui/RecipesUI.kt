@@ -8,7 +8,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.*
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -960,7 +959,7 @@ fun RecipesHomeScreen(
 
         // Floating Action Button for filtering recipes (bottom left)
         var filterMenuExpanded by remember { mutableStateOf(false) }
-        
+
         FloatingActionButton(
             onClick = { filterMenuExpanded = true },
             modifier = Modifier
@@ -969,14 +968,13 @@ fun RecipesHomeScreen(
             containerColor = if (selectedCategories.isNotEmpty()) Color(0xFFB0D0D3) else Color(0xFFC08497),
             contentColor = Color.White
         ) {
-            Text(
-                text = "F",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                fontSize = 24.sp
+            Icon(
+                imageVector = Icons.Default.FilterList,
+                contentDescription = "Filter by Categories",
+                tint = Color.White
             )
         }
-        
+
         // Category Filter Dropdown Menu
         DropdownMenu(
             expanded = filterMenuExpanded,
