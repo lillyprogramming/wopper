@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.*
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.runtime.*
@@ -42,14 +43,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.ui.Alignment
-
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Search
 import java.util.Locale
 
 
@@ -661,7 +663,7 @@ private fun CategoriesChips(
     if (categoriesList.isEmpty()) return
 
     Column(modifier) {
-        Text(title, style = MaterialTheme.typography.titleMedium)
+        Text(title, style = MaterialTheme.typography.titleMedium, color = Color.Black)
         Spacer(Modifier.height(6.dp))
 
         FlowRow(
@@ -672,7 +674,12 @@ private fun CategoriesChips(
             categoriesList.forEach { cat ->
                 AssistChip(
                     onClick = {},
-                    label = { Text(cat) }
+                    label = { Text(cat) },
+                    colors = AssistChipDefaults.assistChipColors(
+                        containerColor = Color(0xFFF7AF9D),
+                        labelColor = Color.Black
+                    ),
+                    border = BorderStroke(1.dp, Color(0xFFC08497))
                 )
             }
         }
@@ -796,17 +803,28 @@ fun RecipesHomeScreen(
 ) {
     val recipes by recipesViewModel.recipesUiState.collectAsStateWithLifecycle()
     var selectedCategories by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var searchQuery by remember { mutableStateOf("") }
 
-    // Filter recipes based on selected categories
-    val filteredRecipes = remember(recipes, selectedCategories) {
-        if (selectedCategories.isEmpty()) {
-            recipes
-        } else {
-            recipes.filter { recipe ->
+    // Filter recipes based on search query and selected categories
+    val filteredRecipes = remember(recipes, selectedCategories, searchQuery) {
+        var filtered = recipes
+        
+        // Filter by search query (search in recipe name)
+        if (searchQuery.isNotBlank()) {
+            filtered = filtered.filter { recipe ->
+                recipe.name.contains(searchQuery, ignoreCase = true)
+            }
+        }
+        
+        // Filter by selected categories
+        if (selectedCategories.isNotEmpty()) {
+            filtered = filtered.filter { recipe ->
                 val recipeCategories = parseCategoriesCsv(recipe.categories).toSet()
                 recipeCategories.intersect(selectedCategories).isNotEmpty()
             }
         }
+        
+        filtered
     }
 
     // Group filtered recipes by meal type
@@ -819,7 +837,7 @@ fun RecipesHomeScreen(
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(24.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
                 // Header with light blue background
@@ -835,15 +853,86 @@ fun RecipesHomeScreen(
                             .padding(horizontal = 16.dp)
                     ) {
                         Spacer(Modifier.height(8.dp))
-                        Text(
-                            text = "wopper",
-                            style = MaterialTheme.typography.headlineLarge,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 42.sp,
-                            color = Color(0xFFFFCAD4)
-                        )
+                        // Text with white outline effect
+                        Box(
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "wopper",
+                                style = MaterialTheme.typography.headlineLarge,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 44.sp,
+                                color = Color(0xFFC08497),
+                                modifier = Modifier.offset(x = (-3).dp, y = 0.dp)
+                            )
+                            Text(
+                                text = "wopper",
+                                style = MaterialTheme.typography.headlineLarge,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 44.sp,
+                                color = Color(0xFFC08497),
+                                modifier = Modifier.offset(x = 3.dp, y = 0.dp)
+                            )
+                            Text(
+                                text = "wopper",
+                                style = MaterialTheme.typography.headlineLarge,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 44.sp,
+                                color = Color(0xFFC08497),
+                                modifier = Modifier.offset(x = 0.dp, y = (-3).dp)
+                            )
+                            Text(
+                                text = "wopper",
+                                style = MaterialTheme.typography.headlineLarge,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 44.sp,
+                                color = Color(0xFFC08497),
+                                modifier = Modifier.offset(x = 0.dp, y = 3.dp)
+                            )
+                            // Draw the actual text on top
+                            Text(
+                                text = "wopper",
+                                style = MaterialTheme.typography.headlineLarge,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 44.sp,
+                                color = Color(0xFFFFCAD4)
+                            )
+                        }
                         Spacer(Modifier.height(8.dp))
                     }
+                }
+            }
+            
+            item {
+                // Search bar below the header
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        placeholder = { Text("Search recipes...", color = Color.Gray) },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Search",
+                                tint = Color(0xFFC08497)
+                            )
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFFC08497),
+                            unfocusedBorderColor = Color(0xFFC08497),
+                            cursorColor = Color(0xFFC08497),
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(24.dp),
+                        singleLine = true
+                    )
                 }
             }
 
@@ -1027,8 +1116,8 @@ fun MealTypeSection(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 12.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        .padding(bottom = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     rowRecipes.forEach { recipe ->
                         Box(modifier = Modifier.weight(1f)) {
@@ -1064,7 +1153,7 @@ fun WoopperRecipeCard(
         colors = CardDefaults.cardColors(
             containerColor = Color(0xFFFFE0E6)
         ),
-        border = androidx.compose.foundation.BorderStroke(
+        border = BorderStroke(
             1.dp,
             Color(0xFFFFB3C1)
         )
@@ -1427,7 +1516,7 @@ fun TimerComponent(
         
         // Reset button
         if (minutes > 0 || seconds > 0) {
-            TextButton(onClick = { 
+            TextButton(onClick = {
                 onMinutesChange(0)
                 onSecondsChange(0)
             }) {
@@ -1540,30 +1629,36 @@ private fun ServingsAdjuster(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Text("Servings:", style = MaterialTheme.typography.bodyLarge)
+        Text("Servings:", style = MaterialTheme.typography.titleMedium, color = Color.Black)
 
-        OutlinedButton(
+        AssistChip(
             onClick = { open = true },
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-        ) {
-            Text(
-                text = desiredServings.toString(),
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold
-            )
-        }
+            label = { 
+                Text(
+                    desiredServings.toString(),
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold
+                ) 
+            },
+            colors = AssistChipDefaults.assistChipColors(
+                containerColor = Color(0xFFF7AF9D),
+                labelColor = Color.Black
+            ),
+            border = BorderStroke(1.dp, Color(0xFFC08497))
+        )
 
         if (desiredServings != baseServings) {
-            Text(
-                text = "base $baseServings",
-                style = MaterialTheme.typography.bodyMedium
-            )
-            TextButton(onClick = { onDesiredChange(baseServings) }) { Text("Reset") }
-        } else {
-            Text(
-                text = "base",
-                style = MaterialTheme.typography.bodyMedium
-            )
+            Spacer(Modifier.weight(1f))
+            Button(
+                onClick = { onDesiredChange(baseServings) },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFB0D0D3),
+                    contentColor = Color(0xFFC08497)
+                ),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Text("Reset")
+            }
         }
     }
 
@@ -1578,7 +1673,15 @@ private fun ServingsAdjuster(
                         value = input,
                         onValueChange = { v -> input = v.filter { it.isDigit() }.take(3) },
                         label = { Text("Servings") },
-                        singleLine = true
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFFB0D0D3),
+                            unfocusedBorderColor = Color(0xFFB0D0D3),
+                            cursorColor = Color(0xFFB0D0D3),
+                            focusedLabelColor = Color(0xFFB0D0D3),
+                            unfocusedLabelColor = Color(0xFFB0D0D3),
+
+                        )
                     )
                 }
             },
@@ -1590,8 +1693,15 @@ private fun ServingsAdjuster(
                 }) { Text("Apply") }
             },
             dismissButton = {
-                OutlinedButton(onClick = { open = false }) { Text("Cancel") }
-            }
+                Button(
+                    onClick = { open = false },
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = Color(0xFFC08497),
+                        contentColor = Color(0xFFB0D0D3)
+                    )
+                ) { Text("Cancel") }
+            },
+            containerColor = Color(0xFFF7AF9D)
         )
     }
 }
@@ -1637,118 +1747,277 @@ fun RecipeDetails(
     val timerState by timerViewModel.timerState.collectAsStateWithLifecycle()
 
     val baseServings = recipe.servingSize.coerceAtLeast(1)
-    var desiredServings by remember(recipe.id) { mutableStateOf(baseServings) }
+    var desiredServings by remember(recipe.id) { mutableIntStateOf(baseServings) }
     val scaleFactor = desiredServings.toDouble() / baseServings.toDouble()
 
-    OutlinedCard(
-        modifier.fillMaxWidth().padding(16.dp)
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color(0xFFF7AF9D))
     ) {
-        Column(Modifier.padding(20.dp).verticalScroll(rememberScrollState())) {
-            Text(recipe.name, style = MaterialTheme.typography.headlineLarge)
-            Spacer(Modifier.height(8.dp))
-            Text("${recipe.mealType} • ${recipe.totalTime} min • Difficulty ${recipe.difficulty}")
-
-            Spacer(Modifier.height(10.dp))
-            CategoriesChips(categoriesCsv = recipe.categories)
-
-            Spacer(Modifier.height(12.dp))
-
-            ServingsAdjuster(
-                baseServings = baseServings,
-                desiredServings = desiredServings,
-                onDesiredChange = { desiredServings = it },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Spacer(Modifier.height(16.dp))
-
-                    if (!recipe.imagePath.isNullOrBlank()) {
-                        OutlinedCard(Modifier.fillMaxWidth()) {
-                            AsyncImage(
-                                model = recipe.imagePath,
-                                contentDescription = "Recipe image",
-                                modifier = Modifier.fillMaxWidth().height(220.dp),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
-                        Spacer(Modifier.height(12.dp))
-                    }
-
-            Text("Ingredients:", style = MaterialTheme.typography.titleMedium)
-            recipe.ingredients.forEach { ing ->
-                val baseAmountStr = ing.amount?.trim().orEmpty()
-                val baseAmountNum = baseAmountStr.takeIf { it.isNotBlank() }?.let(::parseAmountToDouble)
-
-                val scaledAmountStr = when {
-                    baseAmountNum != null -> formatAmount(baseAmountNum * scaleFactor)
-                    else -> baseAmountStr
-                }
-
-                val amountUnit = listOfNotNull(
-                    scaledAmountStr.takeIf { it.isNotBlank() },
-                    ing.unit?.takeIf { it.isNotBlank() }
-                ).joinToString(" ")
-
-                Text("• ${amountUnit.ifBlank { "" }} ${ing.name}".trim())
-            }
-
-            Spacer(Modifier.height(12.dp))
-
-            Text("Instructions:", style = MaterialTheme.typography.titleMedium)
-            recipe.instructions
-                .sortedBy { it.stepNumber }
-                .forEach { step ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize()
+        ) {
+            item {
+                // Header with recipe name (similar to wopper)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFB0D0D3))
+                ) {
+                    // Top bar with back and edit buttons
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 4.dp),
+                            .padding(8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.Top
                     ) {
-                        Text(
-                            text = "${step.stepNumber}. ${step.text}",
-                            modifier = Modifier.weight(1f)
-                        )
-
-                        if (step.timer > 0) {
-                            Button(
-                                onClick = {
-                                    timerViewModel.setMinutes(step.timer)
-                                    timerViewModel.setSeconds(0)
-                                    showTimerSheet = true
-                                }
-                            ) {
-                                Text("${step.timer} min")
-                            }
+                        IconButton(
+                            onClick = onBackClick
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back",
+                                tint = Color(0xFF111827)
+                            )
+                        }
+                        IconButton(
+                            onClick = onEditClick
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit Recipe",
+                                tint = Color(0xFF111827)
+                            )
                         }
                     }
+                    
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                    ) {
+                        Spacer(Modifier.height(8.dp))
+                        // Recipe name with white outline effect
+                        Box(
+                            contentAlignment = Alignment.Center
+                        ) {
+                            // Draw outline strokes in C08497 color
+                            Text(
+                                text = recipe.name,
+                                style = MaterialTheme.typography.headlineLarge,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 42.sp,
+                                color = Color(0xFFC08497),
+                                modifier = Modifier.offset(x = (-2).dp, y = 0.dp)
+                            )
+                            Text(
+                                text = recipe.name,
+                                style = MaterialTheme.typography.headlineLarge,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 42.sp,
+                                color = Color(0xFFC08497),
+                                modifier = Modifier.offset(x = 2.dp, y = 0.dp)
+                            )
+                            Text(
+                                text = recipe.name,
+                                style = MaterialTheme.typography.headlineLarge,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 42.sp,
+                                color = Color(0xFFC08497),
+                                modifier = Modifier.offset(x = 0.dp, y = (-2).dp)
+                            )
+                            Text(
+                                text = recipe.name,
+                                style = MaterialTheme.typography.headlineLarge,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 42.sp,
+                                color = Color(0xFFC08497),
+                                modifier = Modifier.offset(x = 0.dp, y = 2.dp)
+                            )
+                            // Draw the actual text on top
+                            Text(
+                                text = recipe.name,
+                                style = MaterialTheme.typography.headlineLarge,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 42.sp,
+                                color = Color(0xFFFFCAD4)
+                            )
+                        }
+                        Spacer(Modifier.height(8.dp))
+                    }
                 }
-
-            Spacer(Modifier.height(12.dp))
-
-            Text("Notes:", style = MaterialTheme.typography.titleMedium)
-            Text(recipe.notes)
-
-            Spacer(Modifier.height(20.dp))
-
-            Button(
-                onClick = { showTimerSheet = true },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Set Timer")
             }
-            Spacer(Modifier.height(12.dp))
-            Button(
-                onClick = onBackClick,
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Go Back") }
-            Spacer(Modifier.height(12.dp))
-            Button(
-                onClick = onEditClick,
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Edit Recipe") }
+
+            // Recipe image right after the name
+            if (!recipe.imagePath.isNullOrBlank()) {
+                item {
+                    AsyncImage(
+                        model = recipe.imagePath,
+                        contentDescription = "Recipe image",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(250.dp),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            }
+
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.White
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                    Spacer(Modifier.height(8.dp))
+                    
+                    // Meal Type, Total Time, and Difficulty in boxes
+                    FlowRow(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp)
+                    ) {
+                        AssistChip(
+                            onClick = {},
+                            label = { Text(recipe.mealType, color = Color.Black) },
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = Color(0xFFF7AF9D),
+                                labelColor = Color.Black
+                            ),
+                            border = BorderStroke(1.dp, Color(0xFFC08497))
+                        )
+                        AssistChip(
+                            onClick = {},
+                            label = { Text("${recipe.totalTime} min", color = Color.Black) },
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = Color(0xFFF7AF9D),
+                                labelColor = Color.Black
+                            ),
+                            border = BorderStroke(1.dp, Color(0xFFC08497))
+                        )
+                        AssistChip(
+                            onClick = {},
+                            label = { Text("Difficulty ${recipe.difficulty}", color = Color.Black) },
+                            colors = AssistChipDefaults.assistChipColors(
+                                containerColor = Color(0xFFF7AF9D),
+                                labelColor = Color.Black
+                            ),
+                            border = BorderStroke(1.dp, Color(0xFFC08497))
+                        )
+                    }
+
+                    Spacer(Modifier.height(10.dp))
+                    CategoriesChips(categoriesCsv = recipe.categories)
+
+                    Spacer(Modifier.height(12.dp))
+
+                    Spacer(Modifier.height(12.dp))
+                    ServingsAdjuster(
+                        baseServings = baseServings,
+                        desiredServings = desiredServings,
+                        onDesiredChange = { desiredServings = it },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(Modifier.height(16.dp))
+
+                    Text(
+                        "Ingredients:",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.Black
+                    )
+                    recipe.ingredients.forEach { ing ->
+                        val baseAmountStr = ing.amount?.trim().orEmpty()
+                        val baseAmountNum =
+                            baseAmountStr.takeIf { it.isNotBlank() }?.let(::parseAmountToDouble)
+
+                        val scaledAmountStr = when {
+                            baseAmountNum != null -> formatAmount(baseAmountNum * scaleFactor)
+                            else -> baseAmountStr
+                        }
+
+                        val amountUnit = listOfNotNull(
+                            scaledAmountStr.takeIf { it.isNotBlank() },
+                            ing.unit?.takeIf { it.isNotBlank() }
+                        ).joinToString(" ")
+
+                        Text(
+                            "• ${amountUnit.ifBlank { "" }} ${ing.name}".trim(),
+                            color = Color.Black
+                        )
+                    }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    Text(
+                        "Instructions:",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.Black
+                    )
+                    recipe.instructions
+                        .sortedBy { it.stepNumber }
+                        .forEach { step ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "${step.stepNumber}. ${step.text}",
+                                    modifier = Modifier.weight(1f),
+                                    color = Color.Black
+                                )
+
+                                if (step.timer > 0) {
+                                    Button(
+                                        onClick = {
+                                            timerViewModel.setMinutes(step.timer)
+                                            timerViewModel.setSeconds(0)
+                                            showTimerSheet = true
+                                        }
+                                    ) {
+                                        Text("${step.timer} min")
+                                    }
+                                }
+                            }
+                        }
+
+                    Spacer(Modifier.height(12.dp))
+
+                    Text(
+                        "Notes:",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Color.Black
+                    )
+                    Text(recipe.notes, color = Color.Black)
+
+                    Spacer(Modifier.height(20.dp))
+
+                    Button(
+                        onClick = { showTimerSheet = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Set Timer")
+                    }
+                }
             }
         }
+    }
 
         if (showTimerSheet) {
             ModalBottomSheet(
@@ -1773,7 +2042,7 @@ fun RecipeDetails(
             }
         }
     }
-
+}
 
 @Composable
 fun EditRecipeScreen(
