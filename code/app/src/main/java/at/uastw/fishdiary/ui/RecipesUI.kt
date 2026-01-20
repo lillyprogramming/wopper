@@ -1,17 +1,91 @@
 package at.uastw.fishdiary.ui
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.background
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
+import android.content.Context
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.material3.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MenuAnchorType
-import androidx.compose.runtime.*
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableIntState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -27,36 +101,19 @@ import androidx.navigation.navArgument
 import at.uastw.fishdiary.data.Ingredient
 import at.uastw.fishdiary.data.Instruction
 import at.uastw.fishdiary.data.Recipe
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import coil.compose.AsyncImage
-import android.net.Uri
 import java.io.File
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.ui.layout.ContentScale
-import androidx.activity.result.PickVisualMediaRequest
-import android.content.Context
-import android.media.MediaPlayer
-import androidx.compose.ui.platform.LocalContext
 import java.io.FileOutputStream
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.Search
-import java.util.Locale
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
-import kotlinx.coroutines.delay
+
+private val Peach = Color(0xFFF7AF9D)
+private val Blue = Color(0xFFB0D0D3)
+private val Pink = Color(0xFFC08497)
+private val LightPink = Color(0xFFFFCAD4)
 
 @Composable
 private fun DigitsOnlyField(
@@ -72,9 +129,8 @@ private fun DigitsOnlyField(
         value = value,
         onValueChange = { v ->
             val filtered = v.filter { it.isDigit() }.take(maxDigits)
-            if (filtered.isBlank()) {
-                onValueChange("")
-            } else {
+            if (filtered.isBlank()) onValueChange("")
+            else {
                 val n0 = filtered.toIntOrNull()
                 if (n0 == null) onValueChange("")
                 else {
@@ -89,13 +145,10 @@ private fun DigitsOnlyField(
     )
 }
 
-
 private suspend fun scrollToField(requester: BringIntoViewRequester) {
-    // tiny delay so composition/measurement settles before scrolling
     delay(50)
     requester.bringIntoView()
 }
-
 
 enum class Routes(val route: String) {
     List("list"),
@@ -104,30 +157,25 @@ enum class Routes(val route: String) {
     Edit("edit/{recipeId}")
 }
 
-data class IngredientDraft(
-    val amount: String = "",
-    val unit: String = "",
-    val name: String = ""
+data class IngredientDraft(val amount: String = "", val unit: String = "", val name: String = "")
+data class InstructionDraft(val text: String = "", val timer: String = "")
+
+private val unitArr = listOf("g", "kg", "ml", "l", "tbsp", "tsp", "cup", "pcs", "pinch")
+
+private val mealTypeArr = listOf(
+    "Breakfast", "Brunch", "Lunch", "Dinner", "Dessert", "Drinks", "Salads", "Side Dishes", "Soups", "Snacks"
 )
 
-data class InstructionDraft(
-    val text: String = "",
-    val timer: String = ""
-)
-
-private val unitArr = listOf(
-    "g", "kg", "ml", "l", "tbsp", "tsp", "cup", "pcs", "pinch"
+private val categoriesArr = listOf(
+    "Vegan", "Vegetarian", "Spicy", "Sour", "Sweet",
+    "Pasta", "whole-grain", "Chicken", "Beef", "Pork", "Seafood",
+    "Nuts", "lactose", "Gluten", "Nut-free", "lactose-free", "Gluten-free", "fasting"
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun UnitDropdown(
-    unit: String,
-    onUnitChange: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
+private fun UnitDropdown(unit: String, onUnitChange: (String) -> Unit, modifier: Modifier = Modifier) {
     var expanded by remember { mutableStateOf(false) }
-
     ExposedDropdownMenuBox(
         expanded = expanded,
         onExpandedChange = { expanded = !expanded },
@@ -142,18 +190,11 @@ private fun UnitDropdown(
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
             modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
         )
-
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             unitArr.forEach { option ->
                 DropdownMenuItem(
                     text = { Text(option) },
-                    onClick = {
-                        onUnitChange(option)
-                        expanded = false
-                    }
+                    onClick = { onUnitChange(option); expanded = false }
                 )
             }
         }
@@ -203,9 +244,7 @@ private fun EditIngredientDialog(
                 onSave(IngredientDraft(amount.trim(), unit.trim(), name.trim()))
             }) { Text("Save") }
         },
-        dismissButton = {
-            OutlinedButton(onClick = onDismiss) { Text("Cancel") }
-        }
+        dismissButton = { OutlinedButton(onClick = onDismiss) { Text("Cancel") } }
     )
 }
 
@@ -246,9 +285,7 @@ private fun EditInstructionDialog(
                 onSave(InstructionDraft(text.trim(), timer.trim()))
             }) { Text("Save") }
         },
-        dismissButton = {
-            OutlinedButton(onClick = onDismiss) { Text("Cancel") }
-        }
+        dismissButton = { OutlinedButton(onClick = onDismiss) { Text("Cancel") } }
     )
 }
 
@@ -265,23 +302,19 @@ private fun IngredientsEditor(
     var name by remember { mutableStateOf("") }
 
     Column(modifier) {
-        Text("Ingredients", style = MaterialTheme.typography.titleMedium)
-
+        Text("Ingredients", style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(8.dp))
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             OutlinedTextField(
                 value = amount,
                 onValueChange = { v ->
-                    amount = v.filter { it.isDigit() || it == ' ' || it == '/' || it == '.' || it == ',' }
-                        .take(20)
+                    amount = v.filter { it.isDigit() || it == ' ' || it == '/' || it == '.' || it == ',' }.take(20)
                 },
                 label = { Text("Amount") },
                 modifier = Modifier.weight(1f)
             )
-            Box(Modifier.weight(1f)) {
-                UnitDropdown(unit = unit, onUnitChange = { unit = it })
-            }
+            Box(Modifier.weight(1f)) { UnitDropdown(unit = unit, onUnitChange = { unit = it }) }
         }
 
         Spacer(Modifier.height(10.dp))
@@ -299,9 +332,7 @@ private fun IngredientsEditor(
             onClick = {
                 if (name.isBlank()) return@Button
                 onAdd(IngredientDraft(amount = amount.trim(), unit = unit.trim(), name = name.trim()))
-                amount = ""
-                unit = ""
-                name = ""
+                amount = ""; unit = ""; name = ""
             },
             modifier = Modifier.fillMaxWidth()
         ) { Text("Add Ingredient") }
@@ -322,14 +353,11 @@ private fun IngredientsEditor(
                             ing.amount.takeIf { it.isNotBlank() },
                             ing.unit.takeIf { it.isNotBlank() }
                         ).joinToString(" ")
-
                         Text(
                             text = "${if (left.isBlank()) "" else "$left "} ${ing.name}".trim(),
                             modifier = Modifier.weight(1f)
                         )
-
                         Spacer(Modifier.width(10.dp))
-
                         OutlinedButton(onClick = { onRemoveAt(idx) }) { Text("Remove") }
                     }
                 }
@@ -351,8 +379,7 @@ private fun InstructionsEditor(
     var timer by remember { mutableStateOf("") }
 
     Column(modifier) {
-        Text("Instructions", style = MaterialTheme.typography.titleMedium)
-
+        Text("Instructions", style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(8.dp))
 
         OutlinedTextField(
@@ -374,15 +401,13 @@ private fun InstructionsEditor(
             min = 0
         )
 
-
         Spacer(Modifier.height(10.dp))
 
         Button(
             onClick = {
                 if (text.isBlank()) return@Button
                 onAdd(InstructionDraft(text = text.trim(), timer = timer.trim()))
-                text = ""
-                timer = ""
+                text = ""; timer = ""
             },
             modifier = Modifier.fillMaxWidth()
         ) { Text("Add Step") }
@@ -394,10 +419,7 @@ private fun InstructionsEditor(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = { onEditAt(idx) }
                 ) {
-                    Row(
-                        Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = "${idx + 1}. ${step.text}" +
                                     (step.timer.toIntOrNull()?.let { if (it > 0) "  (${it} min)" else "" } ?: ""),
@@ -413,215 +435,158 @@ private fun InstructionsEditor(
     }
 }
 
-
-
-
-private val mealTypeArr = listOf(
-    "Breakfast",
-    "Brunch",
-    "Lunch",
-    "Dinner",
-    "Dessert",
-    "Drinks",
-    "Salads",
-    "Side Dishes",
-    "Soups",
-    "Snacks"
-)
-
-private val categoriesArr = listOf(
-
-    "Vegan", "Vegetarian",
-    "Spicy","Sour","Sweet",
-    "Pasta","whole-grain",
-    "Chicken","Beef","Pork","Seafood",
-    "Nuts", "lactose", "Gluten",
-    "Nut-free", "lactose-free", "Gluten-free",
-    "fasting"
-
-)
-
-
-    @Composable
-    fun FishDiaryApp(
-        modifier: Modifier = Modifier,
-        navController: NavHostController = rememberNavController(),
-        timerViewModel: TimerViewModel = viewModel(factory = AppViewModelProvider.Factory)
-    ) {
-        val timerState by timerViewModel.timerState.collectAsStateWithLifecycle()
-        val displayMinutes = if (timerState.remainingTime > 0) timerState.remainingTime / 60 else timerState.minutes
-        val displaySeconds = if (timerState.remainingTime > 0) timerState.remainingTime % 60 else timerState.seconds
-        val context = LocalContext.current
-        
-        // Store MediaPlayer reference
-        var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
-        
-        // Play sound when dialog shows
-        LaunchedEffect(timerState.showCompletionDialog) {
-            if (timerState.showCompletionDialog) {
-                try {
-                    // Release previous player if exists
-                    mediaPlayer?.release()
-                    
-                    // Try multiple possible paths and filenames
-                    val possiblePaths = listOf(
-                        "themes/sounds/sound.mp3",
-                        "sounds/sound.mp3"
-                    )
-                    
-                    var player: MediaPlayer?
-                    for (path in possiblePaths) {
-                        try {
-                            val assetFileDescriptor = context.assets.openFd(path)
-                            player = MediaPlayer().apply {
-                                setDataSource(
-                                    assetFileDescriptor.fileDescriptor,
-                                    assetFileDescriptor.startOffset,
-                                    assetFileDescriptor.length
-                                )
-                                prepare()
-                                isLooping = true
-                            }
-                            assetFileDescriptor.close()
-                            mediaPlayer = player
-                            player.start()
-                            break // Successfully loaded and playing
-                        } catch (_: Exception) {
-                            // Try next path
-                            continue
-                        }
-                    }
-                } catch (_: Exception) {
-                    // Handle error - sound file might not be found
-                    mediaPlayer = null
-                }
-            } else {
-                // Stop and release when dialog is dismissed
-                mediaPlayer?.apply {
-                    if (isPlaying) {
-                        stop()
-                    }
-                    release()
-                }
-                mediaPlayer = null
-            }
-        }
-        
-        // Cleanup MediaPlayer when composable is disposed
-        DisposableEffect(Unit) {
-            onDispose {
-                mediaPlayer?.apply {
-                    if (isPlaying) {
-                        stop()
-                    }
-                    release()
-                }
-            }
-        }
-
-        // Show completion dialog when timer reaches 0
-        if (timerState.showCompletionDialog) {
-            AlertDialog(
-                onDismissRequest = { 
-                    mediaPlayer?.apply {
-                        if (isPlaying) {
-                            stop()
-                        }
-                        release()
-                    }
-                    mediaPlayer = null
-                    timerViewModel.dismissCompletionDialogAndClear() 
-                },
-                title = { Text("Time is up!") },
-                confirmButton = {
-                    Button(onClick = { 
-                        mediaPlayer?.apply {
-                            if (isPlaying) {
-                                stop()
-                            }
-                            release()
-                        }
-                        mediaPlayer = null
-                        timerViewModel.dismissCompletionDialogAndClear() 
-                    }) {
-                        Text("OK")
-                    }
-                }
-            )
-        }
-
-        Box(modifier = modifier.fillMaxSize()) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                // Timer bar at the top when running or paused
-                if (timerState.remainingTime > 0) {
-                    TimerTopBar(
-                        minutes = displayMinutes,
-                        seconds = displaySeconds,
-                        isRunning = timerState.isRunning,
-                        onTogglePause = { timerViewModel.togglePauseResume() },
-                        onClear = { timerViewModel.clearTimer() },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-                
-                NavHost(
-                    navController = navController,
-                    modifier = Modifier.weight(1f),
-                    startDestination = Routes.List.route
-                ) {
-
-            composable(Routes.List.route) {
-                RecipesHomeScreen(
-                    onRecipeClick = { id -> navController.navigate("detail/$id") },
-                    onAddClick = { navController.navigate(Routes.Create.route) }
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MealTypeDropdown(mealType: String, onMealTypeChange: (String) -> Unit, modifier: Modifier = Modifier) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }, modifier = modifier) {
+        OutlinedTextField(
+            value = mealType,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Meal type") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            mealTypeArr.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option) },
+                    onClick = { onMealTypeChange(option); expanded = false }
                 )
             }
+        }
+    }
+}
 
-            composable(Routes.Create.route) {
-                CreateRecipeScreen(onFinished = { navController.popBackStack() })
-            }
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun CategoriesMultiDropdown(
+    selected: List<String>,
+    onSelectedChange: (List<String>) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val selectedText = remember(selected) { if (selected.isEmpty()) "" else selected.joinToString(", ") }
 
-            composable(
-                Routes.Detail.route,
-                listOf(navArgument("recipeId") { type = NavType.IntType })
-            ) {
-                RecipeDetailView(
-                    navController = navController,
-                    onEditClick = { id -> navController.navigate("edit/$id") },
-                    timerViewModel = timerViewModel
-                )
-            }
-
-            composable(
-                Routes.Edit.route,
-                listOf(navArgument("recipeId") { type = NavType.IntType })
-            ) { backStackEntry ->
-                val recipeId = backStackEntry.arguments?.getInt("recipeId") ?: 0
-
-                EditRecipeScreen(
-                    onSaved = {
-                        navController.navigate("detail/$recipeId") {
-                            popUpTo("detail/$recipeId") { inclusive = true }
-                            launchSingleTop = true
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }, modifier = modifier) {
+        OutlinedTextField(
+            value = selectedText,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Categories") },
+            placeholder = { Text("Select categories") },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            categoriesArr.forEach { option ->
+                val isChecked = selected.contains(option)
+                DropdownMenuItem(
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                            Checkbox(checked = isChecked, onCheckedChange = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(option)
                         }
                     },
-                    onDeleted = {
-                        navController.navigate(Routes.List.route) {
-                            popUpTo(Routes.List.route) { inclusive = false }
-                            launchSingleTop = true
-                        }
+                    onClick = {
+                        val newSelected = if (isChecked) selected - option else selected + option
+                        onSelectedChange(newSelected)
                     }
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun FishDiaryApp(
+    modifier: Modifier = Modifier,
+    navController: NavHostController = rememberNavController(),
+    timerViewModel: TimerViewModel = viewModel(factory = AppViewModelProvider.Factory)
+) {
+    val timerState by timerViewModel.timerState.collectAsStateWithLifecycle()
+    val displayMinutes = if (timerState.remainingTime > 0) timerState.remainingTime / 60 else timerState.minutes
+    val displaySeconds = if (timerState.remainingTime > 0) timerState.remainingTime % 60 else timerState.seconds
+
+    if (timerState.showCompletionDialog) {
+        AlertDialog(
+            onDismissRequest = { timerViewModel.dismissCompletionDialogAndClear() },
+            title = { Text("Time is up!") },
+            confirmButton = {
+                Button(onClick = { timerViewModel.dismissCompletionDialogAndClear() }) { Text("OK") }
+            }
+        )
+    }
+
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            if (timerState.remainingTime > 0) {
+                TimerTopBar(
+                    minutes = displayMinutes,
+                    seconds = displaySeconds,
+                    isRunning = timerState.isRunning,
+                    onTogglePause = { timerViewModel.togglePauseResume() },
+                    onClear = { timerViewModel.clearTimer() },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            NavHost(
+                navController = navController,
+                modifier = Modifier.weight(1f),
+                startDestination = Routes.List.route
+            ) {
+                composable(Routes.List.route) {
+                    RecipesHomeScreen(
+                        onRecipeClick = { id -> navController.navigate("detail/$id") },
+                        onAddClick = { navController.navigate(Routes.Create.route) }
+                    )
+                }
+
+                composable(Routes.Create.route) {
+                    CreateRecipeScreen(onFinished = { navController.popBackStack() })
+                }
+
+                composable(
+                    Routes.Detail.route,
+                    listOf(navArgument("recipeId") { type = NavType.IntType })
+                ) {
+                    RecipeDetailView(
+                        navController = navController,
+                        onEditClick = { id -> navController.navigate("edit/$id") },
+                        timerViewModel = timerViewModel
+                    )
+                }
+
+                composable(
+                    Routes.Edit.route,
+                    listOf(navArgument("recipeId") { type = NavType.IntType })
+                ) { backStackEntry ->
+                    val recipeId = backStackEntry.arguments?.getInt("recipeId") ?: 0
+                    EditRecipeScreen(
+                        onSaved = {
+                            navController.navigate("detail/$recipeId") {
+                                popUpTo("detail/$recipeId") { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        },
+                        onDeleted = {
+                            navController.navigate(Routes.List.route) {
+                                popUpTo(Routes.List.route) { inclusive = false }
+                                launchSingleTop = true
+                            }
+                        }
+                    )
                 }
             }
         }
     }
+}
 
 private fun parseCategoriesCsv(csv: String): List<String> =
-    csv.split(",")
-        .map { it.trim() }
-        .filter { it.isNotBlank() }
+    csv.split(",").map { it.trim() }.filter { it.isNotBlank() }
 
 private suspend fun copyImageToInternalStorage(context: Context, uri: Uri): String? =
     withContext(Dispatchers.IO) {
@@ -629,15 +594,12 @@ private suspend fun copyImageToInternalStorage(context: Context, uri: Uri): Stri
             val input = context.contentResolver.openInputStream(uri) ?: return@withContext null
             val dir = File(context.filesDir, "recipe_images").apply { mkdirs() }
             val outFile = File(dir, "img_${System.currentTimeMillis()}.jpg")
-            FileOutputStream(outFile).use { output ->
-                input.use { it.copyTo(output) }
-            }
+            FileOutputStream(outFile).use { output -> input.use { it.copyTo(output) } }
             outFile.absolutePath
         } catch (_: Exception) {
             null
         }
     }
-
 
 @Composable
 fun ImagePickerField(
@@ -646,22 +608,16 @@ fun ImagePickerField(
     existingImagePath: String?,
     pickedImageUri: Uri?,
     onPick: (Uri?) -> Unit,
-    onRemoveExisting: (() -> Unit)? = null,
-
+    onRemoveExisting: (() -> Unit)? = null
 ) {
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
-    ) { uri ->
-        onPick(uri)
-    }
+    ) { uri -> onPick(uri) }
 
     Column(modifier) {
-        Text(label, style = MaterialTheme.typography.titleMedium)
+        Text(label, style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
 
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(
                 onClick = {
                     pickImageLauncher.launch(
@@ -693,9 +649,7 @@ fun ImagePickerField(
                 AsyncImage(
                     model = previewModel,
                     contentDescription = "Selected image",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp),
+                    modifier = Modifier.fillMaxWidth().height(200.dp),
                     contentScale = ContentScale.Crop
                 )
             }
@@ -703,20 +657,13 @@ fun ImagePickerField(
     }
 }
 
-
-
 @Composable
-private fun CategoriesChips(
-    categoriesCsv: String,
-    modifier: Modifier = Modifier,
-    title: String = "Categories:"
-) {
+private fun CategoriesChips(categoriesCsv: String, modifier: Modifier = Modifier, title: String = "Categories:") {
     val categoriesList = remember(categoriesCsv) { parseCategoriesCsv(categoriesCsv) }
-
     if (categoriesList.isEmpty()) return
 
     Column(modifier) {
-        Text(title, style = MaterialTheme.typography.titleMedium, color = Color.Black)
+        Text(title, style = androidx.compose.material3.MaterialTheme.typography.titleMedium, color = Color.Black)
         Spacer(Modifier.height(6.dp))
 
         FlowRow(
@@ -728,126 +675,78 @@ private fun CategoriesChips(
                 AssistChip(
                     onClick = {},
                     label = { Text(cat) },
-                    colors = AssistChipDefaults.assistChipColors(
-                        containerColor = Color(0xFFF7AF9D),
-                        labelColor = Color.Black
-                    ),
-                    border = BorderStroke(1.dp, Color(0xFFC08497))
+                    colors = AssistChipDefaults.assistChipColors(containerColor = Peach, labelColor = Color.Black),
+                    border = BorderStroke(1.dp, Pink)
                 )
             }
         }
     }
 }
 
+@Composable
+private fun WoopperHeader(title: String, modifier: Modifier = Modifier, onBack: (() -> Unit)? = null) {
+    Box(
+        modifier = modifier.fillMaxWidth().background(Blue)
+    ) {
+        if (onBack != null) {
+            IconButton(onClick = onBack, modifier = Modifier.align(Alignment.TopStart).padding(8.dp)) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back",
+                    tint = Color(0xFF111827)
+                )
+            }
+        }
+
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+        ) {
+            Spacer(Modifier.height(8.dp))
+            Box(contentAlignment = Alignment.Center) {
+                Text(title, fontSize = 42.sp, fontWeight = FontWeight.Bold, color = Pink, modifier = Modifier.offset((-2).dp, 0.dp))
+                Text(title, fontSize = 42.sp, fontWeight = FontWeight.Bold, color = Pink, modifier = Modifier.offset((2).dp, 0.dp))
+                Text(title, fontSize = 42.sp, fontWeight = FontWeight.Bold, color = Pink, modifier = Modifier.offset(0.dp, (-2).dp))
+                Text(title, fontSize = 42.sp, fontWeight = FontWeight.Bold, color = Pink, modifier = Modifier.offset(0.dp, (2).dp))
+                Text(title, fontSize = 42.sp, fontWeight = FontWeight.Bold, color = LightPink)
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MealTypeDropdown(
-    mealType: String,
-    onMealTypeChange: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var expanded by remember { mutableStateOf(false) }
+private fun woopperTextFieldColors() = OutlinedTextFieldDefaults.colors(
+    focusedBorderColor = Pink,
+    unfocusedBorderColor = Pink,
+    cursorColor = Pink,
+    focusedLabelColor = Pink,
+    unfocusedLabelColor = Pink,
+    focusedContainerColor = Color.White,
+    unfocusedContainerColor = Color.White
+)
 
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
-        modifier = modifier
-    ) {
-        OutlinedTextField(
-            value = mealType,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("Meal type") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                .fillMaxWidth()
-        )
-
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            mealTypeArr.forEach { option ->
-                DropdownMenuItem(
-                    text = { Text(option) },
-                    onClick = {
-                        onMealTypeChange(option)
-                        expanded = false
-                    }
-                )
-            }
-        }
-    }
-}
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun CategoriesMultiDropdown(
-    selected: List<String>,
-    onSelectedChange: (List<String>) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    val selectedText = remember(selected) {
-        if (selected.isEmpty()) "" else selected.joinToString(", ")
-    }
-
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = !expanded },
-        modifier = modifier
-    ) {
-        OutlinedTextField(
-            value = selectedText,
-            onValueChange = {},
-            readOnly = true,
-            label = { Text("Categories") },
-            placeholder = { Text("Select categories") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                .fillMaxWidth()
-        )
-
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
-            categoriesArr.forEach { option ->
-                val isChecked = selected.contains(option)
-
-                DropdownMenuItem(
-                    text = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Checkbox(
-                                checked = isChecked,
-                                onCheckedChange = null
-                            )
-                            Spacer(Modifier.width(8.dp))
-                            Text(option)
-                        }
-                    },
-                    onClick = {
-                        val newSelected =
-                            if (isChecked) selected - option
-                            else selected + option
-
-                        onSelectedChange(newSelected)
-                    }
-                )
-            }
-        }
-    }
+private fun WoopperPrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier,
+        colors = ButtonDefaults.buttonColors(containerColor = Blue, contentColor = Color.White)
+    ) { Text(text, fontWeight = FontWeight.Medium) }
 }
 
+@Composable
+private fun WoopperSecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier,
+        border = BorderStroke(1.dp, Pink),
+        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Pink)
+    ) { Text(text, fontWeight = FontWeight.Medium) }
+}
 
-
-// Wopper Style Homepage
 @Composable
 fun RecipesHomeScreen(
     recipesViewModel: RecipesViewModel = viewModel(factory = AppViewModelProvider.Factory),
@@ -858,142 +757,60 @@ fun RecipesHomeScreen(
     var selectedCategories by remember { mutableStateOf<Set<String>>(emptySet()) }
     var searchQuery by remember { mutableStateOf("") }
 
-    // Filter recipes based on search query and selected categories
     val filteredRecipes = remember(recipes, selectedCategories, searchQuery) {
         var filtered = recipes
-        
-        // Filter by search query (search in recipe name)
         if (searchQuery.isNotBlank()) {
-            filtered = filtered.filter { recipe ->
-                recipe.name.contains(searchQuery, ignoreCase = true)
-            }
+            filtered = filtered.filter { recipe -> recipe.name.contains(searchQuery, ignoreCase = true) }
         }
-        
-        // Filter by selected categories
         if (selectedCategories.isNotEmpty()) {
             filtered = filtered.filter { recipe ->
                 val recipeCategories = parseCategoriesCsv(recipe.categories).toSet()
                 recipeCategories.intersect(selectedCategories).isNotEmpty()
             }
         }
-        
         filtered
     }
 
-    // Group filtered recipes by meal type
     val recipesByMealType = filteredRecipes.groupBy { it.mealType }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF7AF9D))
-    ) {
+    Box(modifier = Modifier.fillMaxSize().background(Peach)) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                // Header with light blue background
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFFB0D0D3))
-                ) {
+                Box(modifier = Modifier.fillMaxWidth().background(Blue)) {
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
                     ) {
                         Spacer(Modifier.height(8.dp))
-                        // Text with white outline effect
-                        Box(
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "wopper",
-                                style = MaterialTheme.typography.headlineLarge,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 44.sp,
-                                color = Color(0xFFC08497),
-                                modifier = Modifier.offset(x = (-3).dp, y = 0.dp)
-                            )
-                            Text(
-                                text = "wopper",
-                                style = MaterialTheme.typography.headlineLarge,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 44.sp,
-                                color = Color(0xFFC08497),
-                                modifier = Modifier.offset(x = 3.dp, y = 0.dp)
-                            )
-                            Text(
-                                text = "wopper",
-                                style = MaterialTheme.typography.headlineLarge,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 44.sp,
-                                color = Color(0xFFC08497),
-                                modifier = Modifier.offset(x = 0.dp, y = (-3).dp)
-                            )
-                            Text(
-                                text = "wopper",
-                                style = MaterialTheme.typography.headlineLarge,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 44.sp,
-                                color = Color(0xFFC08497),
-                                modifier = Modifier.offset(x = 0.dp, y = 3.dp)
-                            )
-                            // Draw the actual text on top
-                            Text(
-                                text = "wopper",
-                                style = MaterialTheme.typography.headlineLarge,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 44.sp,
-                                color = Color(0xFFFFCAD4)
-                            )
+                        Box(contentAlignment = Alignment.Center) {
+                            Text("wopper", fontWeight = FontWeight.Bold, fontSize = 44.sp, color = Pink, modifier = Modifier.offset((-3).dp, 0.dp))
+                            Text("wopper", fontWeight = FontWeight.Bold, fontSize = 44.sp, color = Pink, modifier = Modifier.offset((3).dp, 0.dp))
+                            Text("wopper", fontWeight = FontWeight.Bold, fontSize = 44.sp, color = Pink, modifier = Modifier.offset(0.dp, (-3).dp))
+                            Text("wopper", fontWeight = FontWeight.Bold, fontSize = 44.sp, color = Pink, modifier = Modifier.offset(0.dp, (3).dp))
+                            Text("wopper", fontWeight = FontWeight.Bold, fontSize = 44.sp, color = LightPink)
                         }
                         Spacer(Modifier.height(8.dp))
                     }
                 }
             }
-            
+
             item {
-                // Search bar below the header
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                ) {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        placeholder = { Text("Search recipes...", color = Color.Gray) },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = "Search",
-                                tint = Color(0xFFC08497)
-                            )
-                        },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFFC08497),
-                            unfocusedBorderColor = Color(0xFFC08497),
-                            cursorColor = Color(0xFFC08497),
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White
-                        ),
-                        shape = RoundedCornerShape(24.dp),
-                        singleLine = true
-                    )
-                }
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    placeholder = { Text("Search recipes...", color = Color.Gray) },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", tint = Pink) },
+                    colors = woopperTextFieldColors(),
+                    singleLine = true
+                )
             }
 
-            // Create a section for each meal type that has recipes
             mealTypeArr.forEach { mealType ->
                 val mealTypeRecipes = recipesByMealType[mealType] ?: emptyList()
-
-                // Only show sections that have at least one recipe
                 if (mealTypeRecipes.isNotEmpty()) {
                     item {
                         MealTypeSection(
@@ -1005,38 +822,25 @@ fun RecipesHomeScreen(
                 }
             }
 
-            item {
-                Spacer(Modifier.height(32.dp))
-            }
+            item { Spacer(Modifier.height(32.dp)) }
         }
 
-        // Floating Action Button for filtering recipes (bottom left)
         var filterMenuExpanded by remember { mutableStateOf(false) }
 
         FloatingActionButton(
             onClick = { filterMenuExpanded = true },
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(24.dp),
-            containerColor = if (selectedCategories.isNotEmpty()) Color(0xFFB0D0D3) else Color(0xFFC08497),
+            modifier = Modifier.align(Alignment.BottomStart).padding(24.dp),
+            containerColor = if (selectedCategories.isNotEmpty()) Blue else Pink,
             contentColor = Color.White
         ) {
-            Icon(
-                imageVector = Icons.Default.FilterList,
-                contentDescription = "Filter by Categories",
-                tint = Color.White
-            )
+            Icon(Icons.Default.FilterList, contentDescription = "Filter", tint = Color.White)
         }
 
-        // Category Filter Dropdown Menu
         DropdownMenu(
             expanded = filterMenuExpanded,
             onDismissRequest = { filterMenuExpanded = false },
-            modifier = Modifier
-                .widthIn(max = 280.dp)
-                .heightIn(max = 400.dp)
+            modifier = Modifier.widthIn(max = 280.dp).heightIn(max = 400.dp)
         ) {
-            // Header
             DropdownMenuItem(
                 text = {
                     Row(
@@ -1044,70 +848,43 @@ fun RecipesHomeScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            "Filter by Category",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text("Filter by Category", fontWeight = FontWeight.Bold)
                         if (selectedCategories.isNotEmpty()) {
-                            TextButton(
-                                onClick = {
-                                    selectedCategories = emptySet()
-                                    filterMenuExpanded = false
-                                }
-                            ) {
+                            TextButton(onClick = { selectedCategories = emptySet(); filterMenuExpanded = false }) {
                                 Text("Clear", fontSize = 12.sp)
                             }
                         }
                     }
                 },
-                onClick = { }
+                onClick = {}
             )
-            
+
             HorizontalDivider()
-            
-            // Category list with checkboxes
+
             categoriesArr.forEach { category ->
                 val isSelected = selectedCategories.contains(category)
                 DropdownMenuItem(
                     text = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Checkbox(
-                                checked = isSelected,
-                                onCheckedChange = null
-                            )
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                            Checkbox(checked = isSelected, onCheckedChange = null)
                             Spacer(Modifier.width(8.dp))
                             Text(category)
                         }
                     },
                     onClick = {
-                        val newSelected = if (isSelected) {
-                            selectedCategories - category
-                        } else {
-                            selectedCategories + category
-                        }
-                        selectedCategories = newSelected
+                        selectedCategories = if (isSelected) selectedCategories - category else selectedCategories + category
                     }
                 )
             }
         }
 
-        // Floating Action Button for adding recipes (bottom right)
         FloatingActionButton(
             onClick = onAddClick,
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(24.dp),
-            containerColor = Color(0xFFC08497),
+            modifier = Modifier.align(Alignment.BottomEnd).padding(24.dp),
+            containerColor = Pink,
             contentColor = Color.White
         ) {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "Add Recipe"
-            )
+            Icon(Icons.Default.Add, contentDescription = "Add")
         }
     }
 }
@@ -1120,142 +897,76 @@ fun MealTypeSection(
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        )
+        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+            modifier = Modifier.fillMaxWidth().padding(16.dp)
         ) {
-            Text(
-                text = mealType,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                fontSize = 28.sp,
-                color = Color(0xFF111827)
-            )
+            Text(mealType, fontWeight = FontWeight.Bold, fontSize = 28.sp, color = Color(0xFF111827))
             Spacer(Modifier.height(8.dp))
 
-            Button(
-                onClick = {
-                    val randomRecipe = recipes.random()
-                    onRecipeClick(randomRecipe.id)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFB0D0D3)
-                ),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text(
-                    text = "Pick a Random one",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.White
-                )
-            }
+            WoopperPrimaryButton(
+                text = "Pick a Random one",
+                onClick = { onRecipeClick(recipes.random().id) },
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+            )
 
-            // Create a grid layout using rows
             recipes.chunked(2).forEach { rowRecipes ->
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 6.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     rowRecipes.forEach { recipe ->
                         Box(modifier = Modifier.weight(1f)) {
-                            WoopperRecipeCard(
-                                recipe = recipe,
-                                onCardClick = { onRecipeClick(recipe.id) }
-                            )
+                            WoopperRecipeCard(recipe = recipe, onCardClick = { onRecipeClick(recipe.id) })
                         }
                     }
-                    // Add empty space if odd number of items
-                    if (rowRecipes.size == 1) {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
+                    if (rowRecipes.size == 1) Spacer(modifier = Modifier.weight(1f))
                 }
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WoopperRecipeCard(
-    recipe: Recipe,
-    onCardClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
+fun WoopperRecipeCard(recipe: Recipe, onCardClick: () -> Unit, modifier: Modifier = Modifier) {
     Card(
         onClick = onCardClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .aspectRatio(0.85f),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFFFE0E6)
-        ),
-        border = BorderStroke(
-            1.dp,
-            Color(0xFFFFB3C1)
-        )
+        modifier = modifier.fillMaxWidth().aspectRatio(0.85f),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFE0E6)),
+        border = BorderStroke(1.dp, Color(0xFFFFB3C1))
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            // Recipe Image
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            ) {
-                if (recipe.imagePath != null && recipe.imagePath.isNotBlank()) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                if (!recipe.imagePath.isNullOrBlank()) {
                     AsyncImage(
                         model = recipe.imagePath,
                         contentDescription = recipe.name,
-                        modifier = Modifier
-                .fillMaxSize()
-                            .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                        modifier = Modifier.fillMaxSize().clip(androidx.compose.foundation.shape.RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
                         contentScale = ContentScale.Crop
                     )
                 } else {
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color(0xFFE0E0E0)),
+                        modifier = Modifier.fillMaxSize().background(Color(0xFFE0E0E0)),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = recipe.name.take(1).uppercase(),
-                            style = MaterialTheme.typography.headlineLarge,
+                            fontSize = 32.sp,
                             color = Color(0xFF9E9E9E)
                         )
                     }
                 }
             }
 
-            // Recipe Name
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFFF7AF9D))
-                    .padding(12.dp),
+                modifier = Modifier.fillMaxWidth().background(Peach).padding(12.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = recipe.name,
-                    style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium,
                     color = Color.White,
                     textAlign = TextAlign.Center,
@@ -1265,7 +976,6 @@ fun WoopperRecipeCard(
         }
     }
 }
-
 
 @Composable
 fun CreateRecipeScreen(
@@ -1277,208 +987,199 @@ fun CreateRecipeScreen(
     var categories by remember { mutableStateOf<List<String>>(emptyList()) }
     var totalTime by remember { mutableStateOf("") }
     var difficulty by remember { mutableStateOf("") }
-    val ingredients = remember { mutableStateListOf<IngredientDraft>() }
-    val instructions = remember { mutableStateListOf<InstructionDraft>() }
     var notes by remember { mutableStateOf("") }
     var servingSize by remember { mutableStateOf("") }
 
-    // NEW: validation UI bits
+    val ingredients = remember { mutableStateListOf<IngredientDraft>() }
+    val instructions = remember { mutableStateListOf<InstructionDraft>() }
+
     val snackbarHostState = remember { SnackbarHostState() }
     val nameBivr = remember { BringIntoViewRequester() }
     val mealTypeBivr = remember { BringIntoViewRequester() }
 
     var editingIngredientIndex by remember { mutableStateOf<Int?>(null) }
     var editingInstructionIndex by remember { mutableStateOf<Int?>(null) }
-    editingIngredientIndex
-        ?.takeIf { it in ingredients.indices }
-        ?.let { idx ->
-            EditIngredientDialog(
-                initial = ingredients[idx],
-                onDismiss = { editingIngredientIndex = null },
-                onSave = { updated ->
-                    ingredients[idx] = updated
-                    editingIngredientIndex = null
-                }
-            )
-        }
 
-    editingInstructionIndex
-        ?.takeIf { it in instructions.indices }
-        ?.let { idx ->
-            EditInstructionDialog(
-                initial = instructions[idx],
-                onDismiss = { editingInstructionIndex = null },
-                onSave = { updated ->
-                    instructions[idx] = updated
-                    editingInstructionIndex = null
-                }
-            )
-        }
+    editingIngredientIndex?.takeIf { it in ingredients.indices }?.let { idx ->
+        EditIngredientDialog(
+            initial = ingredients[idx],
+            onDismiss = { editingIngredientIndex = null },
+            onSave = { updated -> ingredients[idx] = updated; editingIngredientIndex = null }
+        )
+    }
 
+    editingInstructionIndex?.takeIf { it in instructions.indices }?.let { idx ->
+        EditInstructionDialog(
+            initial = instructions[idx],
+            onDismiss = { editingInstructionIndex = null },
+            onSave = { updated -> instructions[idx] = updated; editingInstructionIndex = null }
+        )
+    }
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var pickedImageUri by remember { mutableStateOf<Uri?>(null) }
 
-    Box(Modifier.fillMaxSize()) {
-        Column(
-            Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+    Box(Modifier.fillMaxSize().background(Peach)) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 120.dp)
         ) {
-            Text("Create Recipe", style = MaterialTheme.typography.headlineMedium)
+            item { WoopperHeader(title = "Create") }
 
-            // REQUIRED: Name
-            OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("Name") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .bringIntoViewRequester(nameBivr)
-            )
-
-            // REQUIRED: Meal type (dropdown)
-            Box(Modifier.bringIntoViewRequester(mealTypeBivr)) {
-                MealTypeDropdown(mealType, { mealType = it }, Modifier.fillMaxWidth())
-            }
-
-            CategoriesMultiDropdown(categories, { categories = it }, Modifier.fillMaxWidth())
-
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                DigitsOnlyField(
-                    value = totalTime,
-                    onValueChange = { totalTime = it },
-                    label = { Text("Total time (min)") },
-                    modifier = Modifier.weight(1f),
-                    maxDigits = 4,
-                    min = 0
-                )
-                DigitsOnlyField(
-                    value = difficulty,
-                    onValueChange = { difficulty = it },
-                    label = { Text("Difficulty (1-5)") },
-                    modifier = Modifier.weight(1f),
-                    maxDigits = 1,
-                    min = 1,
-                    max = 5
-                )
-                DigitsOnlyField(
-                    value = servingSize,
-                    onValueChange = { servingSize = it },
-                    label = { Text("Serving Size") },
-                    modifier = Modifier.weight(1f),
-                    maxDigits = 3,
-                    min = 1
-                )
-
-            }
-
-            IngredientsEditor(
-                ingredients = ingredients,
-                onAdd = { ingredients.add(it) },
-                onRemoveAt = { idx -> ingredients.removeAt(idx) },
-                onEditAt = { idx -> editingIngredientIndex = idx },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            InstructionsEditor(
-                instructions = instructions,
-                onAdd = { instructions.add(it) },
-                onRemoveAt = { idx -> instructions.removeAt(idx) },
-                onEditAt = { idx -> editingInstructionIndex = idx },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = notes,
-                onValueChange = { notes = it },
-                label = { Text("Notes (Optional)") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            ImagePickerField(
-                existingImagePath = null,
-                pickedImageUri = pickedImageUri,
-                onPick = { pickedImageUri = it },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Button(
-                onClick = {
-                    scope.launch {
-                        // REQUIRED validation (only messages for missing required)
-                        val trimmedName = name.trim()
-                        if (trimmedName.isBlank()) {
-                            scrollToField(nameBivr)
-                            snackbarHostState.showSnackbar("Name is required")
-                            return@launch
-                        }
-                        if (mealType.isBlank()) {
-                            scrollToField(mealTypeBivr)
-                            snackbarHostState.showSnackbar("Meal type is required")
-                            return@launch
-                        }
-
-                        val total = totalTime.toIntOrNull() ?: 0
-                        val diff = (difficulty.toIntOrNull() ?: 1).coerceIn(1, 5)
-                        val serveSize = (servingSize.toIntOrNull() ?: 1).coerceAtLeast(1)
-
-                        val ingredientList = ingredients.map {
-                            Ingredient(
-                                recipeId = 0,
-                                name = it.name,
-                                amount = it.amount.ifBlank { null },
-                                unit = it.unit.ifBlank { null }
-                            )
-                        }
-
-                        val instructionList = instructions.mapIndexed { idx, s ->
-                            Instruction(
-                                recipeId = 0,
-                                stepNumber = idx + 1,
-                                text = s.text,
-                                timer = s.timer.toIntOrNull() ?: 0
-                            )
-                        }
-
-                        val savedPath = pickedImageUri?.let { copyImageToInternalStorage(context, it) }
-
-                        addRecipeViewModel.addRecipe(
-                            name = trimmedName,
-                            mealType = mealType,
-                            categories = categories.joinToString(","),
-                            imagePath = savedPath,
-                            ingredients = ingredientList,
-                            instructions = instructionList,
-                            notes = notes,
-                            totalTime = total,
-                            difficulty = diff,
-                            servingSize = serveSize,
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                ) {
+                    Column(
+                        Modifier.fillMaxWidth().padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = name,
+                            onValueChange = { name = it },
+                            label = { Text("Name") },
+                            modifier = Modifier.fillMaxWidth().bringIntoViewRequester(nameBivr),
+                            colors = woopperTextFieldColors()
                         )
-                        onFinished()
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Save") }
 
-            OutlinedButton(onClick = onFinished, modifier = Modifier.fillMaxWidth()) { Text("Cancel") }
+                        Box(Modifier.bringIntoViewRequester(mealTypeBivr)) {
+                            MealTypeDropdown(mealType = mealType, onMealTypeChange = { mealType = it }, modifier = Modifier.fillMaxWidth())
+                        }
+
+                        CategoriesMultiDropdown(selected = categories, onSelectedChange = { categories = it }, modifier = Modifier.fillMaxWidth())
+
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            DigitsOnlyField(
+                                value = totalTime,
+                                onValueChange = { totalTime = it },
+                                label = { Text("Total time (min)") },
+                                modifier = Modifier.weight(1f),
+                                maxDigits = 4,
+                                min = 0
+                            )
+                            DigitsOnlyField(
+                                value = difficulty,
+                                onValueChange = { difficulty = it },
+                                label = { Text("Difficulty (1-5)") },
+                                modifier = Modifier.weight(1f),
+                                maxDigits = 1,
+                                min = 1,
+                                max = 5
+                            )
+                            DigitsOnlyField(
+                                value = servingSize,
+                                onValueChange = { servingSize = it },
+                                label = { Text("Serving size") },
+                                modifier = Modifier.weight(1f),
+                                maxDigits = 3,
+                                min = 1
+                            )
+                        }
+
+                        IngredientsEditor(
+                            ingredients = ingredients,
+                            onAdd = { ingredients.add(it) },
+                            onRemoveAt = { idx -> ingredients.removeAt(idx) },
+                            onEditAt = { idx -> editingIngredientIndex = idx },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        InstructionsEditor(
+                            instructions = instructions,
+                            onAdd = { instructions.add(it) },
+                            onRemoveAt = { idx -> instructions.removeAt(idx) },
+                            onEditAt = { idx -> editingInstructionIndex = idx },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        OutlinedTextField(
+                            value = notes,
+                            onValueChange = { notes = it },
+                            label = { Text("Notes (optional)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = woopperTextFieldColors()
+                        )
+
+                        ImagePickerField(
+                            existingImagePath = null,
+                            pickedImageUri = pickedImageUri,
+                            onPick = { pickedImageUri = it },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            }
         }
 
-        // NEW: snackbar host (small & unobtrusive)
+        Card(
+            modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                WoopperPrimaryButton(
+                    text = "Save",
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = {
+                        scope.launch {
+                            val trimmedName = name.trim()
+                            if (trimmedName.isBlank()) {
+                                scrollToField(nameBivr)
+                                snackbarHostState.showSnackbar("Name is required")
+                                return@launch
+                            }
+                            if (mealType.isBlank()) {
+                                scrollToField(mealTypeBivr)
+                                snackbarHostState.showSnackbar("Meal type is required")
+                                return@launch
+                            }
+
+                            val total = totalTime.toIntOrNull() ?: 0
+                            val diff = (difficulty.toIntOrNull() ?: 1).coerceIn(1, 5)
+                            val serveSize = (servingSize.toIntOrNull() ?: 1).coerceAtLeast(1)
+
+                            val ingredientList = ingredients.map {
+                                Ingredient(recipeId = 0, name = it.name, amount = it.amount.ifBlank { null }, unit = it.unit.ifBlank { null })
+                            }
+
+                            val instructionList = instructions.mapIndexed { idx, s ->
+                                Instruction(recipeId = 0, stepNumber = idx + 1, text = s.text, timer = s.timer.toIntOrNull() ?: 0)
+                            }
+
+                            val savedPath = pickedImageUri?.let { copyImageToInternalStorage(context, it) }
+
+                            addRecipeViewModel.addRecipe(
+                                name = trimmedName,
+                                mealType = mealType,
+                                categories = categories.joinToString(","),
+                                imagePath = savedPath,
+                                ingredients = ingredientList,
+                                instructions = instructionList,
+                                notes = notes,
+                                totalTime = total,
+                                difficulty = diff,
+                                servingSize = serveSize
+                            )
+                            onFinished()
+                        }
+                    }
+                )
+
+                WoopperSecondaryButton(
+                    text = "Cancel",
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = onFinished
+                )
+            }
+        }
+
         SnackbarHost(
             hostState = snackbarHostState,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .padding(16.dp)
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 130.dp)
         )
     }
 }
-
-
-
 
 @Composable
 fun RecipeDetailView(
@@ -1488,163 +1189,12 @@ fun RecipeDetailView(
     timerViewModel: TimerViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
     val state by recipeDetailViewModel.recipeDetailUiState.collectAsStateWithLifecycle()
-
     RecipeDetails(
         recipe = state.recipe,
         onBackClick = { navController?.popBackStack() },
         onEditClick = { onEditClick(state.recipe.id) },
         timerViewModel = timerViewModel
     )
-}
-
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun TimerComponent(
-    minutes: Int,
-    seconds: Int,
-    onMinutesChange: (Int) -> Unit,
-    onSecondsChange: (Int) -> Unit,
-    onStart: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(24.dp)
-    ) {
-        // Timer Display
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Minutes
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                IconButton(
-                    onClick = { 
-                        if (minutes < 99) {
-                            onMinutesChange(minutes + 1)
-                        }
-                    }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowUp,
-                        contentDescription = "Increase minutes",
-                        tint = Color.White
-                    )
-                }
-                
-                Text(
-                    text = String.format(Locale.getDefault(), "%02d", minutes),
-                    fontSize = 48.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-                
-                IconButton(
-                    onClick = { 
-                        if (minutes > 0) {
-                            onMinutesChange(minutes - 1)
-                        }
-                    }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = "Decrease minutes",
-                        tint = Color.White
-                    )
-                }
-            }
-            
-            Text(
-                text = ":",
-                fontSize = 48.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-            
-            // Seconds
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                IconButton(
-                    onClick = { 
-                        if (seconds < 50) {
-                            onSecondsChange(seconds + 10)
-                        } else { 
-                            onSecondsChange(0)
-                            if (minutes < 99) onMinutesChange(minutes + 1)
-                        }
-                    }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowUp,
-                        contentDescription = "Increase seconds",
-                        tint = Color.White
-                    )
-                }
-                
-                Text(
-                    text = String.format(Locale.getDefault(), "%02d", seconds),
-                    fontSize = 48.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-                
-                IconButton(
-                    onClick = { 
-                        if (seconds > 0) {
-                            onSecondsChange(seconds - 10)
-                        } else { 
-                            onSecondsChange(50)
-                            if (minutes > 0) onMinutesChange(minutes - 1)
-                        }
-                    }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = "Decrease seconds",
-                        tint = Color.White
-                    )
-                }
-            }
-            
-            Spacer(Modifier.width(16.dp))
-            
-            // Play Button
-            FloatingActionButton(
-                onClick = {
-                    if (minutes > 0 || seconds > 0) {
-                        onStart()
-                    }
-                },
-                containerColor = Color(0xFF4DD0E1), // Light blue/teal
-                modifier = Modifier.size(64.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = "Start",
-                    tint = Color.White,
-                    modifier = Modifier.size(32.dp)
-                )
-            }
-        }
-        
-        // Reset button
-        if (minutes > 0 || seconds > 0) {
-            TextButton(onClick = {
-                onMinutesChange(0)
-                onSecondsChange(0)
-            }) {
-                Text("Reset", color = Color.White)
-            }
-        }
-    }
 }
 
 @Composable
@@ -1656,85 +1206,99 @@ fun TimerTopBar(
     onClear: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = Color(0xFFFFB5A7), // Light coral/peach color
-        shadowElevation = 4.dp
-    ) {
+    Surface(modifier = modifier.fillMaxWidth(), color = Color(0xFFFFB5A7), shadowElevation = 4.dp) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = "Timer: ${String.format(Locale.getDefault(), "%02d", minutes)}:${String.format(Locale.getDefault(), "%02d", seconds)}",
-                style = MaterialTheme.typography.titleMedium,
                 color = Color.White,
                 fontWeight = FontWeight.Bold
             )
-            
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Pause/Resume toggle button
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = onTogglePause) {
                     if (isRunning) {
-                        // Pause icon (two rectangles)
-                        Box(
-                            modifier = Modifier.size(24.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .width(6.dp)
-                                        .height(16.dp)
-                                        .background(Color.White, RoundedCornerShape(1.dp))
-                                )
-                                Box(
-                                    modifier = Modifier
-                                        .width(6.dp)
-                                        .height(16.dp)
-                                        .background(Color.White, RoundedCornerShape(1.dp))
-                                )
-                            }
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier.width(6.dp).height(16.dp).background(Color.White))
+                            Box(Modifier.width(6.dp).height(16.dp).background(Color.White))
                         }
                     } else {
-                        // Play icon (resume)
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = "Resume",
-                            tint = Color.White,
-                            modifier = Modifier.size(24.dp)
-                        )
+                        Icon(Icons.Default.PlayArrow, contentDescription = "Resume", tint = Color.White)
                     }
                 }
-                
-                // Clear/Stop button (X icon)
                 IconButton(onClick = onClear) {
-                    // Custom X icon (clear/stop)
-                    Box(
-                        modifier = Modifier.size(24.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Clear",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
+                    Icon(Icons.Default.Close, contentDescription = "Clear", tint = Color.White)
                 }
             }
         }
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TimerComponent(
+    minutes: Int,
+    seconds: Int,
+    onMinutesChange: (Int) -> Unit,
+    onSecondsChange: (Int) -> Unit,
+    onStart: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(24.dp)
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                IconButton(onClick = { if (minutes < 99) onMinutesChange(minutes + 1) }) {
+                    Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Up", tint = Color.White)
+                }
+                Text(String.format(Locale.getDefault(), "%02d", minutes), fontSize = 48.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                IconButton(onClick = { if (minutes > 0) onMinutesChange(minutes - 1) }) {
+                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Down", tint = Color.White)
+                }
+            }
+
+            Text(":", fontSize = 48.sp, fontWeight = FontWeight.Bold, color = Color.White)
+
+            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                IconButton(onClick = {
+                    if (seconds < 50) onSecondsChange(seconds + 10)
+                    else { onSecondsChange(0); if (minutes < 99) onMinutesChange(minutes + 1) }
+                }) {
+                    Icon(Icons.Default.KeyboardArrowUp, contentDescription = "Up", tint = Color.White)
+                }
+                Text(String.format(Locale.getDefault(), "%02d", seconds), fontSize = 48.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                IconButton(onClick = {
+                    if (seconds > 0) onSecondsChange(seconds - 10)
+                    else { onSecondsChange(50); if (minutes > 0) onMinutesChange(minutes - 1) }
+                }) {
+                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Down", tint = Color.White)
+                }
+            }
+
+            Spacer(Modifier.width(16.dp))
+
+            FloatingActionButton(
+                onClick = { if (minutes > 0 || seconds > 0) onStart() },
+                containerColor = Color(0xFF4DD0E1),
+                modifier = Modifier.size(64.dp)
+            ) {
+                Icon(Icons.Default.PlayArrow, contentDescription = "Start", tint = Color.White, modifier = Modifier.size(32.dp))
+            }
+        }
+
+        if (minutes > 0 || seconds > 0) {
+            TextButton(onClick = { onMinutesChange(0); onSecondsChange(0) }) {
+                Text("Reset", color = Color.White)
+            }
+        }
+    }
+}
+
 @Composable
 private fun ServingsAdjuster(
     baseServings: Int,
@@ -1750,36 +1314,22 @@ private fun ServingsAdjuster(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Text("Servings:", style = MaterialTheme.typography.titleMedium, color = Color.Black)
+        Text("Servings:", color = Color.Black, fontWeight = FontWeight.Medium)
 
         AssistChip(
             onClick = { open = true },
-            label = { 
-                Text(
-                    desiredServings.toString(),
-                    color = Color.Black,
-                    fontWeight = FontWeight.Bold
-                ) 
-            },
-            colors = AssistChipDefaults.assistChipColors(
-                containerColor = Color(0xFFF7AF9D),
-                labelColor = Color.Black
-            ),
-            border = BorderStroke(1.dp, Color(0xFFC08497))
+            label = { Text(desiredServings.toString(), color = Color.Black, fontWeight = FontWeight.Bold) },
+            colors = AssistChipDefaults.assistChipColors(containerColor = Peach, labelColor = Color.Black),
+            border = BorderStroke(1.dp, Pink)
         )
 
         if (desiredServings != baseServings) {
             Spacer(Modifier.weight(1f))
             Button(
                 onClick = { onDesiredChange(baseServings) },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFB0D0D3),
-                    contentColor = Color(0xFFC08497)
-                ),
+                colors = ButtonDefaults.buttonColors(containerColor = Blue, contentColor = Pink),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
-            ) {
-                Text("Reset")
-            }
+            ) { Text("Reset") }
         }
     }
 
@@ -1799,16 +1349,8 @@ private fun ServingsAdjuster(
                         },
                         label = { Text("Servings") },
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFFB0D0D3),
-                            unfocusedBorderColor = Color(0xFFB0D0D3),
-                            cursorColor = Color(0xFFB0D0D3),
-                            focusedLabelColor = Color(0xFFB0D0D3),
-                            unfocusedLabelColor = Color(0xFFB0D0D3),
-
-                        )
+                        colors = woopperTextFieldColors()
                     )
-
                 }
             },
             confirmButton = {
@@ -1821,13 +1363,10 @@ private fun ServingsAdjuster(
             dismissButton = {
                 Button(
                     onClick = { open = false },
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        containerColor = Color(0xFFC08497),
-                        contentColor = Color(0xFFB0D0D3)
-                    )
+                    colors = ButtonDefaults.buttonColors(containerColor = Pink, contentColor = Blue)
                 ) { Text("Cancel") }
             },
-            containerColor = Color(0xFFF7AF9D)
+            containerColor = Peach
         )
     }
 }
@@ -1876,116 +1415,43 @@ fun RecipeDetails(
     var desiredServings by remember(recipe.id) { mutableIntStateOf(baseServings) }
     val scaleFactor = desiredServings.toDouble() / baseServings.toDouble()
 
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Color(0xFFF7AF9D))
-    ) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize()
-        ) {
+    Box(modifier = modifier.fillMaxSize().background(Peach)) {
+        LazyColumn(modifier = Modifier.fillMaxSize()) {
             item {
-                // Header with recipe name (similar to wopper)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFFB0D0D3))
-                ) {
-                    // Top bar with back and edit buttons
+                Box(modifier = Modifier.fillMaxWidth().background(Blue)) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(8.dp),
+                        modifier = Modifier.fillMaxWidth().padding(8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.Top
                     ) {
-                        IconButton(
-                            onClick = onBackClick
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = Color(0xFF111827)
-                            )
+                        IconButton(onClick = onBackClick) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF111827))
                         }
-                        IconButton(
-                            onClick = onEditClick
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = "Edit Recipe",
-                                tint = Color(0xFF111827)
-                            )
+                        IconButton(onClick = onEditClick) {
+                            Icon(Icons.Default.Edit, contentDescription = "Edit", tint = Color(0xFF111827))
                         }
                     }
-                    
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                    ) {
+
+                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                         Spacer(Modifier.height(8.dp))
-                        // Recipe name with white outline effect
-                        Box(
-                            contentAlignment = Alignment.Center
-                        ) {
-                            // Draw outline strokes in C08497 color
-                            Text(
-                                text = recipe.name,
-                                style = MaterialTheme.typography.headlineLarge,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 42.sp,
-                                color = Color(0xFFC08497),
-                                modifier = Modifier.offset(x = (-2).dp, y = 0.dp)
-                            )
-                            Text(
-                                text = recipe.name,
-                                style = MaterialTheme.typography.headlineLarge,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 42.sp,
-                                color = Color(0xFFC08497),
-                                modifier = Modifier.offset(x = 2.dp, y = 0.dp)
-                            )
-                            Text(
-                                text = recipe.name,
-                                style = MaterialTheme.typography.headlineLarge,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 42.sp,
-                                color = Color(0xFFC08497),
-                                modifier = Modifier.offset(x = 0.dp, y = (-2).dp)
-                            )
-                            Text(
-                                text = recipe.name,
-                                style = MaterialTheme.typography.headlineLarge,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 42.sp,
-                                color = Color(0xFFC08497),
-                                modifier = Modifier.offset(x = 0.dp, y = 2.dp)
-                            )
-                            // Draw the actual text on top
-                            Text(
-                                text = recipe.name,
-                                style = MaterialTheme.typography.headlineLarge,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 42.sp,
-                                color = Color(0xFFFFCAD4)
-                            )
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(recipe.name, fontSize = 42.sp, fontWeight = FontWeight.Bold, color = Pink, modifier = Modifier.offset((-2).dp, 0.dp))
+                            Text(recipe.name, fontSize = 42.sp, fontWeight = FontWeight.Bold, color = Pink, modifier = Modifier.offset((2).dp, 0.dp))
+                            Text(recipe.name, fontSize = 42.sp, fontWeight = FontWeight.Bold, color = Pink, modifier = Modifier.offset(0.dp, (-2).dp))
+                            Text(recipe.name, fontSize = 42.sp, fontWeight = FontWeight.Bold, color = Pink, modifier = Modifier.offset(0.dp, (2).dp))
+                            Text(recipe.name, fontSize = 42.sp, fontWeight = FontWeight.Bold, color = LightPink)
                         }
                         Spacer(Modifier.height(8.dp))
                     }
                 }
             }
 
-            // Recipe image right after the name
             if (!recipe.imagePath.isNullOrBlank()) {
                 item {
                     AsyncImage(
                         model = recipe.imagePath,
                         contentDescription = "Recipe image",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(250.dp),
+                        modifier = Modifier.fillMaxWidth().height(250.dp),
                         contentScale = ContentScale.Crop
                     )
                 }
@@ -1993,183 +1459,123 @@ fun RecipeDetails(
 
             item {
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color.White
-                    )
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                    ) {
-                    Spacer(Modifier.height(8.dp))
-                    
-                    // Meal Type, Total Time, and Difficulty in boxes
-                    FlowRow(
-                        horizontalArrangement = Arrangement.Center,
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp)
-                    ) {
-                        AssistChip(
-                            onClick = {},
-                            label = { Text(recipe.mealType, color = Color.Black) },
-                            colors = AssistChipDefaults.assistChipColors(
-                                containerColor = Color(0xFFF7AF9D),
-                                labelColor = Color.Black
-                            ),
-                            border = BorderStroke(1.dp, Color(0xFFC08497))
-                        )
-                        AssistChip(
-                            onClick = {},
-                            label = { Text("${recipe.totalTime} min", color = Color.Black) },
-                            colors = AssistChipDefaults.assistChipColors(
-                                containerColor = Color(0xFFF7AF9D),
-                                labelColor = Color.Black
-                            ),
-                            border = BorderStroke(1.dp, Color(0xFFC08497))
-                        )
-                        AssistChip(
-                            onClick = {},
-                            label = { Text("Difficulty ${recipe.difficulty}", color = Color.Black) },
-                            colors = AssistChipDefaults.assistChipColors(
-                                containerColor = Color(0xFFF7AF9D),
-                                labelColor = Color.Black
-                            ),
-                            border = BorderStroke(1.dp, Color(0xFFC08497))
-                        )
-                    }
-
-                    Spacer(Modifier.height(10.dp))
-                    CategoriesChips(categoriesCsv = recipe.categories)
-
-                    Spacer(Modifier.height(12.dp))
-
-                    Spacer(Modifier.height(12.dp))
-                    ServingsAdjuster(
-                        baseServings = baseServings,
-                        desiredServings = desiredServings,
-                        onDesiredChange = { desiredServings = it },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(Modifier.height(16.dp))
-
-                    Text(
-                        "Ingredients:",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.Black
-                    )
-                    recipe.ingredients.forEach { ing ->
-                        val baseAmountStr = ing.amount?.trim().orEmpty()
-                        val baseAmountNum =
-                            baseAmountStr.takeIf { it.isNotBlank() }?.let(::parseAmountToDouble)
-
-                        val scaledAmountStr = when {
-                            baseAmountNum != null -> formatAmount(baseAmountNum * scaleFactor)
-                            else -> baseAmountStr
+                    Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.Center,
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                        ) {
+                            AssistChip(
+                                onClick = {},
+                                label = { Text(recipe.mealType, color = Color.Black) },
+                                colors = AssistChipDefaults.assistChipColors(containerColor = Peach, labelColor = Color.Black),
+                                border = BorderStroke(1.dp, Pink)
+                            )
+                            AssistChip(
+                                onClick = {},
+                                label = { Text("${recipe.totalTime} min", color = Color.Black) },
+                                colors = AssistChipDefaults.assistChipColors(containerColor = Peach, labelColor = Color.Black),
+                                border = BorderStroke(1.dp, Pink)
+                            )
+                            AssistChip(
+                                onClick = {},
+                                label = { Text("Difficulty ${recipe.difficulty}", color = Color.Black) },
+                                colors = AssistChipDefaults.assistChipColors(containerColor = Peach, labelColor = Color.Black),
+                                border = BorderStroke(1.dp, Pink)
+                            )
                         }
 
-                        val amountUnit = listOfNotNull(
-                            scaledAmountStr.takeIf { it.isNotBlank() },
-                            ing.unit?.takeIf { it.isNotBlank() }
-                        ).joinToString(" ")
+                        Spacer(Modifier.height(10.dp))
+                        CategoriesChips(categoriesCsv = recipe.categories)
+                        Spacer(Modifier.height(16.dp))
 
-                        Text(
-                            "• ${amountUnit.ifBlank { "" }} ${ing.name}".trim(),
-                            color = Color.Black
+                        ServingsAdjuster(
+                            baseServings = baseServings,
+                            desiredServings = desiredServings,
+                            onDesiredChange = { desiredServings = it },
+                            modifier = Modifier.fillMaxWidth()
                         )
-                    }
 
-                    Spacer(Modifier.height(12.dp))
+                        Spacer(Modifier.height(16.dp))
 
-                    Text(
-                        "Instructions:",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.Black
-                    )
-                    recipe.instructions
-                        .sortedBy { it.stepNumber }
-                        .forEach { step ->
+                        Text("Ingredients:", color = Color.Black, fontWeight = FontWeight.Medium)
+                        recipe.ingredients.forEach { ing ->
+                            val baseAmountStr = ing.amount?.trim().orEmpty()
+                            val baseAmountNum = baseAmountStr.takeIf { it.isNotBlank() }?.let(::parseAmountToDouble)
+
+                            val scaledAmountStr = when {
+                                baseAmountNum != null -> formatAmount(baseAmountNum * scaleFactor)
+                                else -> baseAmountStr
+                            }
+
+                            val amountUnit = listOfNotNull(
+                                scaledAmountStr.takeIf { it.isNotBlank() },
+                                ing.unit?.takeIf { it.isNotBlank() }
+                            ).joinToString(" ")
+
+                            Text("• ${amountUnit.ifBlank { "" }} ${ing.name}".trim(), color = Color.Black)
+                        }
+
+                        Spacer(Modifier.height(12.dp))
+
+                        Text("Instructions:", color = Color.Black, fontWeight = FontWeight.Medium)
+                        recipe.instructions.sortedBy { it.stepNumber }.forEach { step ->
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = "${step.stepNumber}. ${step.text}",
-                                    modifier = Modifier.weight(1f),
-                                    color = Color.Black
-                                )
-
+                                Text("${step.stepNumber}. ${step.text}", modifier = Modifier.weight(1f), color = Color.Black)
                                 if (step.timer > 0) {
-                                    Button(
-                                        onClick = {
-                                            timerViewModel.setMinutes(step.timer)
-                                            timerViewModel.setSeconds(0)
-                                            showTimerSheet = true
-                                        }
-                                    ) {
-                                        Text("${step.timer} min")
-                                    }
+                                    Button(onClick = {
+                                        timerViewModel.setMinutes(step.timer)
+                                        timerViewModel.setSeconds(0)
+                                        showTimerSheet = true
+                                    }) { Text("${step.timer} min") }
                                 }
                             }
                         }
 
-                    Spacer(Modifier.height(12.dp))
+                        Spacer(Modifier.height(12.dp))
 
-                    Text(
-                        "Notes:",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = Color.Black
-                    )
-                    Text(recipe.notes, color = Color.Black)
+                        Text("Notes:", color = Color.Black, fontWeight = FontWeight.Medium)
+                        Text(recipe.notes, color = Color.Black)
 
-                    Spacer(Modifier.height(20.dp))
+                        Spacer(Modifier.height(20.dp))
 
-                    Button(
-                        onClick = { showTimerSheet = true },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Set Timer")
+                        WoopperPrimaryButton(
+                            text = "Set Timer",
+                            onClick = { showTimerSheet = true },
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
             }
         }
-    }
 
         if (showTimerSheet) {
             ModalBottomSheet(
                 onDismissRequest = { showTimerSheet = false },
                 sheetState = sheetState,
-                containerColor = Color(0xFFFFB5A7), // Light coral/peach color
-                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
+                containerColor = Color(0xFFFFB5A7)
             ) {
                 TimerComponent(
                     minutes = timerState.minutes,
                     seconds = timerState.seconds,
                     onMinutesChange = { timerViewModel.setMinutes(it) },
                     onSecondsChange = { timerViewModel.setSeconds(it) },
-                    onStart = {
-                        timerViewModel.startTimer()
-                        showTimerSheet = false
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 32.dp)
+                    onStart = { timerViewModel.startTimer(); showTimerSheet = false },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 32.dp)
                 )
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditRecipeScreen(
     viewModel: RecipeEditViewModel = viewModel(factory = AppViewModelProvider.Factory),
@@ -2189,16 +1595,15 @@ fun EditRecipeScreen(
         if (ui.loaded && !hydrated) {
             ingredients.clear()
             ingredients.addAll(ui.ingredients)
-
             instructions.clear()
             instructions.addAll(ui.instructions)
-
             hydrated = true
         }
     }
 
     var editingIngredientIndex by remember { mutableStateOf<Int?>(null) }
     var editingInstructionIndex by remember { mutableStateOf<Int?>(null) }
+
     editingIngredientIndex
         ?.takeIf { it in ingredients.indices }
         ?.let { idx ->
@@ -2225,157 +1630,197 @@ fun EditRecipeScreen(
             )
         }
 
-
     var pickedImageUri by remember { mutableStateOf<Uri?>(null) }
 
-    // NEW: validation UI bits
     val snackbarHostState = remember { SnackbarHostState() }
     val nameBivr = remember { BringIntoViewRequester() }
     val mealTypeBivr = remember { BringIntoViewRequester() }
 
-    Box(Modifier.fillMaxSize()) {
-        Column(
-            Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF7AF9D))
+    ) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(bottom = 120.dp)
         ) {
-            Text("Edit Recipe", style = MaterialTheme.typography.headlineMedium)
-
-            // REQUIRED: Name
-            OutlinedTextField(
-                value = ui.name,
-                onValueChange = viewModel::updateName,
-                label = { Text("Name") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .bringIntoViewRequester(nameBivr)
-            )
-
-            // REQUIRED: Meal type
-            Box(Modifier.bringIntoViewRequester(mealTypeBivr)) {
-                MealTypeDropdown(ui.mealType, viewModel::updateMealType, Modifier.fillMaxWidth())
+            item {
+                WoopperHeader(title = "Edit")
             }
 
-            CategoriesMultiDropdown(
-                ui.categories,
-                viewModel::updateCategories,
-                Modifier.fillMaxWidth()
-            )
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                ) {
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        OutlinedTextField(
+                            value = ui.name,
+                            onValueChange = viewModel::updateName,
+                            label = { Text("Name") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .bringIntoViewRequester(nameBivr),
+                            colors = woopperTextFieldColors()
+                        )
 
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                DigitsOnlyField(
-                    value = ui.totalTime,
-                    onValueChange = viewModel::updateTotalTime,
-                    label = { Text("Total time (min)") },
-                    modifier = Modifier.weight(1f),
-                    maxDigits = 4,
-                    min = 0
-                )
-                DigitsOnlyField(
-                    value = ui.difficulty,
-                    onValueChange = viewModel::updateDifficulty,
-                    label = { Text("Difficulty (1-5)") },
-                    modifier = Modifier.weight(1f),
-                    maxDigits = 1,
-                    min = 1,
-                    max = 5
-                )
-                DigitsOnlyField(
-                    value = ui.servingSize,
-                    onValueChange = viewModel::updateServingSize,
-                    label = { Text("Serving Size") },
-                    modifier = Modifier.weight(1f),
-                    maxDigits = 3,
-                    min = 1
-                )
-
-            }
-
-            IngredientsEditor(
-                ingredients = ingredients,
-                onAdd = { ingredients.add(it) },
-                onRemoveAt = { idx -> ingredients.removeAt(idx) },
-                onEditAt = { idx -> editingIngredientIndex = idx },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            InstructionsEditor(
-                instructions = instructions,
-                onAdd = { instructions.add(it) },
-                onRemoveAt = { idx -> instructions.removeAt(idx) },
-                onEditAt = { idx -> editingInstructionIndex = idx },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            OutlinedTextField(
-                value = ui.notes,
-                onValueChange = viewModel::updateNotes,
-                label = { Text("Notes") },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            ImagePickerField(
-                existingImagePath = ui.imagePath,
-                pickedImageUri = pickedImageUri,
-                onPick = { pickedImageUri = it },
-                onRemoveExisting = { viewModel.updateImagePath(null) },
-                modifier = Modifier.fillMaxWidth()
-            )
-
-            Button(
-                onClick = {
-                    scope.launch {
-                        val trimmedName = ui.name.trim()
-                        if (trimmedName.isBlank()) {
-                            scrollToField(nameBivr)
-                            snackbarHostState.showSnackbar("Name is required")
-                            return@launch
-                        }
-                        if (ui.mealType.isBlank()) {
-                            scrollToField(mealTypeBivr)
-                            snackbarHostState.showSnackbar("Meal type is required")
-                            return@launch
+                        Box(Modifier.bringIntoViewRequester(mealTypeBivr)) {
+                            MealTypeDropdown(
+                                mealType = ui.mealType,
+                                onMealTypeChange = viewModel::updateMealType,
+                                modifier = Modifier.fillMaxWidth()
+                            )
                         }
 
-                        // store copied image if picked
-                        val newPath = pickedImageUri?.let { copyImageToInternalStorage(context, it) }
-                        if (newPath != null) viewModel.updateImagePath(newPath)
+                        CategoriesMultiDropdown(
+                            selected = ui.categories,
+                            onSelectedChange = viewModel::updateCategories,
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
-                        viewModel.save(
-                            ingredientDrafts = ingredients.toList(),
-                            instructionDrafts = instructions.toList(),
-                            onFinished = onSaved
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            DigitsOnlyField(
+                                value = ui.totalTime,
+                                onValueChange = viewModel::updateTotalTime,
+                                label = { Text("Total time (min)") },
+                                modifier = Modifier.weight(1f),
+                                maxDigits = 4,
+                                min = 0
+                            )
+                            DigitsOnlyField(
+                                value = ui.difficulty,
+                                onValueChange = viewModel::updateDifficulty,
+                                label = { Text("Difficulty (1-5)") },
+                                modifier = Modifier.weight(1f),
+                                maxDigits = 1,
+                                min = 1,
+                                max = 5
+                            )
+                            DigitsOnlyField(
+                                value = ui.servingSize,
+                                onValueChange = viewModel::updateServingSize,
+                                label = { Text("Serving size") },
+                                modifier = Modifier.weight(1f),
+                                maxDigits = 3,
+                                min = 1
+                            )
+                        }
+
+                        IngredientsEditor(
+                            ingredients = ingredients,
+                            onAdd = { ingredients.add(it) },
+                            onRemoveAt = { idx -> ingredients.removeAt(idx) },
+                            onEditAt = { idx -> editingIngredientIndex = idx },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        InstructionsEditor(
+                            instructions = instructions,
+                            onAdd = { instructions.add(it) },
+                            onRemoveAt = { idx -> instructions.removeAt(idx) },
+                            onEditAt = { idx -> editingInstructionIndex = idx },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        OutlinedTextField(
+                            value = ui.notes,
+                            onValueChange = viewModel::updateNotes,
+                            label = { Text("Notes") },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = woopperTextFieldColors()
+                        )
+
+                        ImagePickerField(
+                            existingImagePath = ui.imagePath,
+                            pickedImageUri = pickedImageUri,
+                            onPick = { pickedImageUri = it },
+                            onRemoveExisting = { viewModel.updateImagePath(null) },
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
-                },
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Save Changes") }
+                }
+            }
+        }
 
-            Button(
-                onClick = { viewModel.delete(onDeleted) },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError
+        Card(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(16.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                WoopperPrimaryButton(
+                    text = "Save changes",
+                    onClick = {
+                        scope.launch {
+                            val trimmedName = ui.name.trim()
+                            if (trimmedName.isBlank()) {
+                                scrollToField(nameBivr)
+                                snackbarHostState.showSnackbar("Name is required")
+                                return@launch
+                            }
+                            if (ui.mealType.isBlank()) {
+                                scrollToField(mealTypeBivr)
+                                snackbarHostState.showSnackbar("Meal type is required")
+                                return@launch
+                            }
+
+                            val newPath = pickedImageUri?.let { copyImageToInternalStorage(context, it) }
+                            if (newPath != null) viewModel.updateImagePath(newPath)
+
+                            viewModel.save(
+                                ingredientDrafts = ingredients.toList(),
+                                instructionDrafts = instructions.toList(),
+                                onFinished = onSaved
+                            )
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
                 )
-            ) { Text("Delete Recipe") }
 
-            OutlinedButton(
-                onClick = onSaved,
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Cancel") }
+                Button(
+                    onClick = { viewModel.delete(onDeleted) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFC08497),
+                        contentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Delete recipe")
+                }
+
+                WoopperSecondaryButton(
+                    text = "Cancel",
+                    onClick = onSaved,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
 
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(16.dp)
+                .padding(bottom = 130.dp)
         )
     }
 }
-
-
-

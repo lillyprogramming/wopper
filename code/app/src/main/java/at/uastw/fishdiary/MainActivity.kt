@@ -18,10 +18,9 @@ class MainActivity : ComponentActivity() {
         setContent {
             FishDiaryTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    FishDiaryApp(Modifier.padding(innerPadding))
+                    FishDiaryApp(modifier = Modifier.padding(innerPadding))
                 }
             }
         }
     }
 }
-

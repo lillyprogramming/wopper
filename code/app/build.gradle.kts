@@ -45,6 +45,7 @@ dependencies {
     implementation(libs.androidx.navigation.runtime.ktx)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.volley)
+    implementation(libs.androidx.compose.foundation)
     // room setup
     val room_version = "2.8.3"
     implementation("androidx.room:room-ktx:$room_version")
