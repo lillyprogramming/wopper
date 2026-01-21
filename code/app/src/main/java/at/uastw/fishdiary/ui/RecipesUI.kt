@@ -162,7 +162,7 @@ data class InstructionDraft(val text: String = "", val timer: String = "")
 private val unitArr = listOf("g", "kg", "ml", "l", "tbsp", "tsp", "cup", "pcs", "pinch")
 
 private val mealTypeArr = listOf(
-    "Breakfast", "Brunch", "Lunch", "Dinner", "Dessert", "Drinks", "Salads", "Side Dishes", "Soups", "Snacks"
+    "Breakfast", "Brunch", "Lunch", "Dinner", "Dessert", "Drinks", "Salads", "Side Dishes", "Soups", "Snacks", "Sauces"
 )
 
 private val categoriesArr = listOf(
@@ -244,14 +244,16 @@ private fun EditIngredientDialog(
         focusedBorderColor = Pink,
         unfocusedBorderColor = Pink.copy(alpha = 0.85f),
         cursorColor = Pink,
-        focusedLabelColor = Pink,
-        unfocusedLabelColor = Pink.copy(alpha = 0.9f),
+        focusedLabelColor = Color.Black,
+        unfocusedLabelColor = Color.Black.copy(alpha = 0.9f),
         errorBorderColor = Pink,
-        errorLabelColor = Pink,
+        errorLabelColor = Color.Black,
         errorCursorColor = Pink,
         focusedContainerColor = Color.White,
         unfocusedContainerColor = Color.White,
-        errorContainerColor = Color.White
+        errorContainerColor = Color.White,
+        focusedTextColor = Color(0xFF111827),
+        unfocusedTextColor = Color(0xFF111827)
     )
 
     AlertDialog(
@@ -327,14 +329,16 @@ private fun EditInstructionDialog(
         focusedBorderColor = Pink,
         unfocusedBorderColor = Pink.copy(alpha = 0.85f),
         cursorColor = Pink,
-        focusedLabelColor = Pink,
-        unfocusedLabelColor = Pink.copy(alpha = 0.9f),
+        focusedLabelColor = Color.Black,
+        unfocusedLabelColor = Color.Black.copy(alpha = 0.9f),
         errorBorderColor = Pink,
-        errorLabelColor = Pink,
+        errorLabelColor = Color.Black,
         errorCursorColor = Pink,
         focusedContainerColor = Color.White,
         unfocusedContainerColor = Color.White,
-        errorContainerColor = Color.White
+        errorContainerColor = Color.White,
+        focusedTextColor = Color(0xFF111827),
+        unfocusedTextColor = Color(0xFF111827)
     )
 
     AlertDialog(
@@ -574,7 +578,7 @@ private fun MealTypeDropdown(mealType: String, onMealTypeChange: (String) -> Uni
             value = mealType,
             onValueChange = {},
             readOnly = true,
-            label = { Text("Meal type") },
+            label = { Text("Meal type*") },
             placeholder = { Text("Select") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
@@ -1256,6 +1260,22 @@ private fun ServingsAdjuster(
     }
 
     if (open) {
+        val dialogFieldColors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = Pink,
+            unfocusedBorderColor = Pink.copy(alpha = 0.85f),
+            cursorColor = Pink,
+            focusedLabelColor = Color.Black,
+            unfocusedLabelColor = Color.Black.copy(alpha = 0.9f),
+            errorBorderColor = Pink,
+            errorLabelColor = Color.Black,
+            errorCursorColor = Pink,
+            focusedContainerColor = Color.White,
+            unfocusedContainerColor = Color.White,
+            errorContainerColor = Color.White,
+            focusedTextColor = Color(0xFF111827),
+            unfocusedTextColor = Color(0xFF111827)
+        )
+
         AlertDialog(
             onDismissRequest = { open = false },
             title = { Text("Adjust servings") },
@@ -1271,19 +1291,7 @@ private fun ServingsAdjuster(
                         },
                         label = { Text("Servings") },
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Pink,
-                            unfocusedBorderColor = Pink.copy(alpha = 0.85f),
-                            cursorColor = Pink,
-                            focusedLabelColor = Pink,
-                            unfocusedLabelColor = Pink.copy(alpha = 0.9f),
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White,
-                            errorContainerColor = Color.White,
-                            errorBorderColor = Pink,
-                            errorCursorColor = Pink,
-                            errorLabelColor = Pink
-                        )
+                        colors = dialogFieldColors
                     )
                 }
             },
@@ -1304,6 +1312,8 @@ private fun ServingsAdjuster(
         )
     }
 }
+
+
 
 
 
