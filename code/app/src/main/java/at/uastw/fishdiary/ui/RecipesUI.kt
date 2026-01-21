@@ -823,38 +823,6 @@ private fun CategoriesChips(categoriesCsv: String, modifier: Modifier = Modifier
     }
 }
 
-@Composable
-private fun WoopperHeader(title: String, modifier: Modifier = Modifier, onBack: (() -> Unit)? = null) {
-    Box(
-        modifier = modifier.fillMaxWidth().background(Blue)
-    ) {
-        if (onBack != null) {
-            IconButton(onClick = onBack, modifier = Modifier.align(Alignment.TopStart).padding(8.dp)) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = Color(0xFF111827)
-                )
-            }
-        }
-
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
-        ) {
-            Spacer(Modifier.height(8.dp))
-            Box(contentAlignment = Alignment.Center) {
-                Text(title, fontSize = 42.sp, fontWeight = FontWeight.Bold, color = Pink, modifier = Modifier.offset((-2).dp, 0.dp))
-                Text(title, fontSize = 42.sp, fontWeight = FontWeight.Bold, color = Pink, modifier = Modifier.offset((2).dp, 0.dp))
-                Text(title, fontSize = 42.sp, fontWeight = FontWeight.Bold, color = Pink, modifier = Modifier.offset(0.dp, (-2).dp))
-                Text(title, fontSize = 42.sp, fontWeight = FontWeight.Bold, color = Pink, modifier = Modifier.offset(0.dp, (2).dp))
-                Text(title, fontSize = 42.sp, fontWeight = FontWeight.Bold, color = LightPink)
-            }
-            Spacer(Modifier.height(8.dp))
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun woopperTextFieldColors() = OutlinedTextFieldDefaults.colors(
@@ -1338,6 +1306,7 @@ private fun ServingsAdjuster(
 }
 
 
+
 private fun parseAmountToDouble(amount: String): Double? {
     val a = amount.trim().lowercase()
 
@@ -1399,7 +1368,10 @@ fun RecipeDetails(
                         }
                     }
 
-                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                    ) {
                         Spacer(Modifier.height(8.dp))
                         Box(contentAlignment = Alignment.Center) {
                             Text(recipe.name, fontSize = 42.sp, fontWeight = FontWeight.Bold, color = Pink, modifier = Modifier.offset((-2).dp, 0.dp))
@@ -1430,10 +1402,10 @@ fun RecipeDetails(
                     colors = CardDefaults.cardColors(containerColor = Color.White)
                 ) {
                     Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                        FlowRow(
-                            horizontalArrangement = Arrangement.Center,
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
                             AssistChip(
                                 onClick = {},
@@ -1469,44 +1441,66 @@ fun RecipeDetails(
                         Spacer(Modifier.height(16.dp))
 
                         Text("Ingredients:", color = Color.Black, fontWeight = FontWeight.Medium)
-                        recipe.ingredients.forEach { ing ->
-                            val baseAmountStr = ing.amount?.trim().orEmpty()
-                            val baseAmountNum = baseAmountStr.takeIf { it.isNotBlank() }?.let(::parseAmountToDouble)
+                        Spacer(Modifier.height(8.dp))
 
-                            val scaledAmountStr = when {
-                                baseAmountNum != null -> formatAmount(baseAmountNum * scaleFactor)
-                                else -> baseAmountStr
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            recipe.ingredients.forEach { ing ->
+                                val baseAmountStr = ing.amount?.trim().orEmpty()
+                                val baseAmountNum = baseAmountStr.takeIf { it.isNotBlank() }?.let(::parseAmountToDouble)
+
+                                val scaledAmountStr = when {
+                                    baseAmountNum != null -> formatAmount(baseAmountNum * scaleFactor)
+                                    else -> baseAmountStr
+                                }
+
+                                val amountUnit = listOfNotNull(
+                                    scaledAmountStr.takeIf { it.isNotBlank() },
+                                    ing.unit?.takeIf { it.isNotBlank() }
+                                ).joinToString(" ")
+
+                                Text(
+                                    text = "• ${amountUnit.ifBlank { "" }} ${ing.name}".trim(),
+                                    color = Color.Black,
+                                    modifier = Modifier.padding(vertical = 2.dp)
+                                )
                             }
-
-                            val amountUnit = listOfNotNull(
-                                scaledAmountStr.takeIf { it.isNotBlank() },
-                                ing.unit?.takeIf { it.isNotBlank() }
-                            ).joinToString(" ")
-
-                            Text("• ${amountUnit.ifBlank { "" }} ${ing.name}".trim(), color = Color.Black)
                         }
 
-                        Spacer(Modifier.height(12.dp))
+                        Spacer(Modifier.height(14.dp))
 
                         Text("Instructions:", color = Color.Black, fontWeight = FontWeight.Medium)
-                        recipe.instructions.sortedBy { it.stepNumber }.forEach { step ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text("${step.stepNumber}. ${step.text}", modifier = Modifier.weight(1f), color = Color.Black)
-                                if (step.timer > 0) {
-                                    Button(onClick = {
-                                        timerViewModel.setMinutes(step.timer)
-                                        timerViewModel.setSeconds(0)
-                                        showTimerSheet = true
-                                    }) { Text("${step.timer} min") }
+                        Spacer(Modifier.height(8.dp))
+
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            recipe.instructions.sortedBy { it.stepNumber }.forEach { step ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "${step.stepNumber}. ${step.text}",
+                                        modifier = Modifier.weight(1f),
+                                        color = Color.Black
+                                    )
+
+                                    Box(
+                                        modifier = Modifier.widthIn(min = 86.dp),
+                                        contentAlignment = Alignment.CenterEnd
+                                    ) {
+                                        if (step.timer > 0) {
+                                            Button(onClick = {
+                                                timerViewModel.setMinutes(step.timer)
+                                                timerViewModel.setSeconds(0)
+                                                showTimerSheet = true
+                                            }) { Text("${step.timer} min") }
+                                        }
+                                    }
                                 }
                             }
                         }
 
-                        Spacer(Modifier.height(12.dp))
+                        Spacer(Modifier.height(14.dp))
 
                         Text("Notes:", color = Color.Black, fontWeight = FontWeight.Medium)
                         Text(recipe.notes, color = Color.Black)
