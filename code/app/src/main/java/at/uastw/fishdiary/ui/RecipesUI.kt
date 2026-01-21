@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -112,6 +113,7 @@ private val Blue = Color(0xFFB0D0D3)
 private val Pink = Color(0xFFC08497)
 private val LightPink = Color(0xFFFFCAD4)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DigitsOnlyField(
     value: String,
@@ -120,7 +122,10 @@ private fun DigitsOnlyField(
     modifier: Modifier = Modifier,
     maxDigits: Int = 4,
     min: Int? = null,
-    max: Int? = null
+    max: Int? = null,
+    isError: Boolean = false,
+    supportingText: (@Composable (() -> Unit))? = null,
+    colors: androidx.compose.material3.TextFieldColors = woopperTextFieldColors()
 ) {
     OutlinedTextField(
         value = value,
@@ -138,9 +143,13 @@ private fun DigitsOnlyField(
             }
         },
         label = label,
-        modifier = modifier
+        modifier = modifier,
+        isError = isError,
+        supportingText = supportingText,
+        colors = colors
     )
 }
+
 
 private suspend fun scrollToField(requester: BringIntoViewRequester) {
     delay(50)
@@ -165,8 +174,8 @@ private val mealTypeArr = listOf(
 
 private val categoriesArr = listOf(
     "Vegan", "Vegetarian", "Spicy", "Sour", "Sweet",
-    "Pasta", "whole-grain", "Chicken", "Beef", "Pork", "Seafood",
-    "Nuts", "lactose", "Gluten", "Nut-free", "lactose-free", "Gluten-free", "fasting"
+    "Pasta", "Whole-grain", "Chicken", "Beef", "Pork", "Seafood",
+    "Nuts", "Lactose", "Gluten", "Nut-free", "Lactose-free", "Gluten-free", "Fast-friendly"
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -185,7 +194,9 @@ private fun UnitDropdown(unit: String, onUnitChange: (String) -> Unit, modifier:
             label = { Text("Unit") },
             placeholder = { Text("Select") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
-            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+            colors = woopperTextFieldColors(),
+            shape = RoundedCornerShape(14.dp)
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             unitArr.forEach { option ->
@@ -199,6 +210,32 @@ private fun UnitDropdown(unit: String, onUnitChange: (String) -> Unit, modifier:
 }
 
 @Composable
+private fun WoopperInputCard(
+    title: String,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, Pink),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            if (title.isNotBlank()) {
+                Text(title, fontWeight = FontWeight.Black, color = Color(0xFF111827), fontSize = 18.sp)
+            }
+            content()
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 private fun EditIngredientDialog(
     initial: IngredientDraft,
     onDismiss: () -> Unit,
@@ -207,44 +244,64 @@ private fun EditIngredientDialog(
     var amount by remember { mutableStateOf(initial.amount) }
     var unit by remember { mutableStateOf(initial.unit) }
     var name by remember { mutableStateOf(initial.name) }
+    val nameErr = remember(name) { name.trim().isBlank() }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edit Ingredient") },
+        containerColor = Peach,
+        title = { Text("Edit Ingredient", fontWeight = FontWeight.Black, color = Color(0xFF111827)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedTextField(
-                        value = amount,
-                        onValueChange = { v ->
-                            amount = v.filter { it.isDigit() || it == ' ' || it == '/' || it == '.' || it == ',' }
-                                .take(20)
-                        },
-                        label = { Text("Amount") },
-                        modifier = Modifier.weight(1f)
-                    )
-                    Box(Modifier.weight(1f)) {
-                        UnitDropdown(unit = unit, onUnitChange = { unit = it })
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                WoopperFieldWrap(title = "Amount", required = false) {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        OutlinedTextField(
+                            value = amount,
+                            onValueChange = { v ->
+                                amount = v.filter { it.isDigit() || it == ' ' || it == '/' || it == '.' || it == ',' }.take(20)
+                            },
+                            label = { Text("Amount") },
+                            modifier = Modifier.weight(1f),
+                            colors = woopperTextFieldColors()
+                        )
+                        Box(Modifier.weight(1f)) {
+                            UnitDropdown(unit = unit, onUnitChange = { unit = it })
+                        }
                     }
                 }
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Ingredient") },
-                    modifier = Modifier.fillMaxWidth()
-                )
+
+                WoopperFieldWrap(title = "Ingredient", required = true, highlight = nameErr) {
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("Name") },
+                        modifier = Modifier.fillMaxWidth(),
+                        isError = nameErr,
+                        supportingText = { if (nameErr) Text("Required", color = Pink) },
+                        colors = woopperTextFieldColors()
+                    )
+                }
             }
         },
         confirmButton = {
-            Button(onClick = {
-                if (name.isBlank()) return@Button
-                onSave(IngredientDraft(amount.trim(), unit.trim(), name.trim()))
-            }) { Text("Save") }
+            Button(
+                onClick = {
+                    if (name.trim().isBlank()) return@Button
+                    onSave(IngredientDraft(amount.trim(), unit.trim(), name.trim()))
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Blue, contentColor = Color.White)
+            ) { Text("Save", fontWeight = FontWeight.Bold) }
         },
-        dismissButton = { OutlinedButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = {
+            OutlinedButton(
+                onClick = onDismiss,
+                border = BorderStroke(1.dp, Pink),
+                colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Pink)
+            ) { Text("Cancel", fontWeight = FontWeight.Bold) }
+        }
     )
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditInstructionDialog(
     initial: InstructionDraft,
@@ -253,36 +310,56 @@ private fun EditInstructionDialog(
 ) {
     var text by remember { mutableStateOf(initial.text) }
     var timer by remember { mutableStateOf(initial.timer) }
+    val textErr = remember(text) { text.trim().isBlank() }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edit Step") },
+        containerColor = Peach,
+        title = { Text("Edit Step", fontWeight = FontWeight.Black, color = Color(0xFF111827)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
-                    value = text,
-                    onValueChange = { text = it },
-                    label = { Text("Step") },
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 2
-                )
-                DigitsOnlyField(
-                    value = timer,
-                    onValueChange = { timer = it },
-                    label = { Text("Timer (min, optional)") },
-                    modifier = Modifier.fillMaxWidth(),
-                    maxDigits = 3,
-                    min = 0
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                WoopperFieldWrap(title = "Step", required = true, highlight = textErr) {
+                    OutlinedTextField(
+                        value = text,
+                        onValueChange = { text = it },
+                        label = { Text("Instruction") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 2,
+                        isError = textErr,
+                        supportingText = { if (textErr) Text("Required", color = Pink) },
+                        colors = woopperTextFieldColors()
+                    )
+                }
+
+                WoopperFieldWrap(title = "Timer", required = false) {
+                    DigitsOnlyField(
+                        value = timer,
+                        onValueChange = { timer = it },
+                        label = { Text("Minutes (optional)") },
+                        modifier = Modifier.fillMaxWidth(),
+                        maxDigits = 3,
+                        min = 0,
+                        colors = woopperTextFieldColors()
+                    )
+                }
             }
         },
         confirmButton = {
-            Button(onClick = {
-                if (text.isBlank()) return@Button
-                onSave(InstructionDraft(text.trim(), timer.trim()))
-            }) { Text("Save") }
+            Button(
+                onClick = {
+                    if (text.trim().isBlank()) return@Button
+                    onSave(InstructionDraft(text.trim(), timer.trim()))
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Blue, contentColor = Color.White)
+            ) { Text("Save", fontWeight = FontWeight.Bold) }
         },
-        dismissButton = { OutlinedButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = {
+            OutlinedButton(
+                onClick = onDismiss,
+                border = BorderStroke(1.dp, Pink),
+                colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Pink)
+            ) { Text("Cancel", fontWeight = FontWeight.Bold) }
+        }
     )
 }
 
@@ -309,7 +386,10 @@ private fun IngredientsEditor(
                     amount = v.filter { it.isDigit() || it == ' ' || it == '/' || it == '.' || it == ',' }.take(20)
                 },
                 label = { Text("Amount") },
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                colors = woopperTextFieldColors(),
+                shape = RoundedCornerShape(14.dp),
+                singleLine = true
             )
             Box(Modifier.weight(1f)) { UnitDropdown(unit = unit, onUnitChange = { unit = it }) }
         }
@@ -320,7 +400,10 @@ private fun IngredientsEditor(
             value = name,
             onValueChange = { name = it },
             label = { Text("Ingredient") },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            colors = woopperTextFieldColors(),
+            shape = RoundedCornerShape(14.dp),
+            singleLine = true
         )
 
         Spacer(Modifier.height(10.dp))
@@ -331,15 +414,20 @@ private fun IngredientsEditor(
                 onAdd(IngredientDraft(amount = amount.trim(), unit = unit.trim(), name = name.trim()))
                 amount = ""; unit = ""; name = ""
             },
-            modifier = Modifier.fillMaxWidth()
-        ) { Text("Add Ingredient") }
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Blue, contentColor = Color.White),
+            shape = RoundedCornerShape(14.dp)
+        ) { Text("Add Ingredient", fontWeight = FontWeight.Bold) }
 
         if (ingredients.isNotEmpty()) {
             Spacer(Modifier.height(12.dp))
             ingredients.forEachIndexed { idx, ing ->
                 OutlinedCard(
                     modifier = Modifier.fillMaxWidth(),
-                    onClick = { onEditAt(idx) }
+                    onClick = { onEditAt(idx) },
+                    border = BorderStroke(1.dp, Pink),
+                    colors = CardDefaults.outlinedCardColors(containerColor = LightPink.copy(alpha = 0.20f)),
+                    shape = RoundedCornerShape(16.dp)
                 ) {
                     Row(
                         Modifier.padding(12.dp),
@@ -352,10 +440,18 @@ private fun IngredientsEditor(
                         ).joinToString(" ")
                         Text(
                             text = "${if (left.isBlank()) "" else "$left "} ${ing.name}".trim(),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            color = Color(0xFF111827),
+                            fontWeight = FontWeight.Medium
                         )
                         Spacer(Modifier.width(10.dp))
-                        OutlinedButton(onClick = { onRemoveAt(idx) }) { Text("Remove") }
+                        OutlinedButton(
+                            onClick = { onRemoveAt(idx) },
+                            border = BorderStroke(1.dp, Pink),
+                            colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Pink),
+                            shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                        ) { Text("Remove", fontWeight = FontWeight.Bold) }
                     }
                 }
                 Spacer(Modifier.height(8.dp))
@@ -384,7 +480,9 @@ private fun InstructionsEditor(
             onValueChange = { text = it },
             label = { Text("Step") },
             modifier = Modifier.fillMaxWidth(),
-            minLines = 2
+            minLines = 2,
+            colors = woopperTextFieldColors(),
+            shape = RoundedCornerShape(14.dp)
         )
 
         Spacer(Modifier.height(10.dp))
@@ -395,7 +493,8 @@ private fun InstructionsEditor(
             label = { Text("Timer (minute, optional)") },
             modifier = Modifier.fillMaxWidth(),
             maxDigits = 3,
-            min = 0
+            min = 0,
+            colors = woopperTextFieldColors()
         )
 
         Spacer(Modifier.height(10.dp))
@@ -406,24 +505,37 @@ private fun InstructionsEditor(
                 onAdd(InstructionDraft(text = text.trim(), timer = timer.trim()))
                 text = ""; timer = ""
             },
-            modifier = Modifier.fillMaxWidth()
-        ) { Text("Add Step") }
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Blue, contentColor = Color.White),
+            shape = RoundedCornerShape(14.dp)
+        ) { Text("Add Step", fontWeight = FontWeight.Bold) }
 
         if (instructions.isNotEmpty()) {
             Spacer(Modifier.height(12.dp))
             instructions.forEachIndexed { idx, step ->
                 OutlinedCard(
                     modifier = Modifier.fillMaxWidth(),
-                    onClick = { onEditAt(idx) }
+                    onClick = { onEditAt(idx) },
+                    border = BorderStroke(1.dp, Pink),
+                    colors = CardDefaults.outlinedCardColors(containerColor = LightPink.copy(alpha = 0.20f)),
+                    shape = RoundedCornerShape(16.dp)
                 ) {
                     Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(
                             text = "${idx + 1}. ${step.text}" +
                                     (step.timer.toIntOrNull()?.let { if (it > 0) "  (${it} min)" else "" } ?: ""),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            color = Color(0xFF111827),
+                            fontWeight = FontWeight.Medium
                         )
                         Spacer(Modifier.width(10.dp))
-                        OutlinedButton(onClick = { onRemoveAt(idx) }) { Text("Remove") }
+                        OutlinedButton(
+                            onClick = { onRemoveAt(idx) },
+                            border = BorderStroke(1.dp, Pink),
+                            colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Pink),
+                            shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                        ) { Text("Remove", fontWeight = FontWeight.Bold) }
                     }
                 }
                 Spacer(Modifier.height(8.dp))
@@ -431,6 +543,7 @@ private fun InstructionsEditor(
         }
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -442,8 +555,11 @@ private fun MealTypeDropdown(mealType: String, onMealTypeChange: (String) -> Uni
             onValueChange = {},
             readOnly = true,
             label = { Text("Meal type") },
+            placeholder = { Text("Select") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+            colors = woopperTextFieldColors(),
+            shape = RoundedCornerShape(14.dp)
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             mealTypeArr.forEach { option ->
@@ -474,7 +590,9 @@ private fun CategoriesMultiDropdown(
             label = { Text("Categories") },
             placeholder = { Text("Select categories") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
+            colors = woopperTextFieldColors(),
+            shape = RoundedCornerShape(14.dp)
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             categoriesArr.forEach { option ->
@@ -601,7 +719,6 @@ private suspend fun copyImageToInternalStorage(context: Context, uri: Uri): Stri
 @Composable
 fun ImagePickerField(
     modifier: Modifier = Modifier,
-    label: String = "Image (optional)",
     existingImagePath: String?,
     pickedImageUri: Uri?,
     onPick: (Uri?) -> Unit,
@@ -612,17 +729,15 @@ fun ImagePickerField(
     ) { uri -> onPick(uri) }
 
     Column(modifier) {
-        Text(label, style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
-
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Button(
                 onClick = {
-                    pickImageLauncher.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                    )
+                    pickImageLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                 },
-                modifier = Modifier.weight(1f)
-            ) { Text(if (pickedImageUri == null) "Pick Image" else "Change") }
+                modifier = Modifier.weight(1f).height(46.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Blue, contentColor = Color.White),
+                shape = RoundedCornerShape(14.dp)
+            ) { Text(if (pickedImageUri == null) "Pick Image" else "Change", fontWeight = FontWeight.Bold) }
 
             OutlinedButton(
                 onClick = {
@@ -630,8 +745,11 @@ fun ImagePickerField(
                     onRemoveExisting?.invoke()
                 },
                 enabled = pickedImageUri != null || (existingImagePath != null && onRemoveExisting != null),
-                modifier = Modifier.weight(1f)
-            ) { Text("Remove") }
+                modifier = Modifier.weight(1f).height(46.dp),
+                border = BorderStroke(1.dp, Pink),
+                colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Pink),
+                shape = RoundedCornerShape(14.dp)
+            ) { Text("Remove", fontWeight = FontWeight.Bold) }
         }
 
         val previewModel = when {
@@ -641,12 +759,17 @@ fun ImagePickerField(
         }
 
         if (previewModel != null) {
-            Spacer(Modifier.height(8.dp))
-            OutlinedCard(Modifier.fillMaxWidth()) {
+            Spacer(Modifier.height(10.dp))
+            OutlinedCard(
+                Modifier.fillMaxWidth(),
+                border = BorderStroke(1.dp, Pink),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.outlinedCardColors(containerColor = Color.White)
+            ) {
                 AsyncImage(
                     model = previewModel,
                     contentDescription = "Selected image",
-                    modifier = Modifier.fillMaxWidth().height(200.dp),
+                    modifier = Modifier.fillMaxWidth().height(210.dp).clip(RoundedCornerShape(18.dp)),
                     contentScale = ContentScale.Crop
                 )
             }
@@ -716,14 +839,17 @@ private fun WoopperHeader(title: String, modifier: Modifier = Modifier, onBack: 
 @Composable
 private fun woopperTextFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedBorderColor = Pink,
-    unfocusedBorderColor = Pink,
+    unfocusedBorderColor = Pink.copy(alpha = 0.85f),
     cursorColor = Pink,
     focusedLabelColor = Pink,
-    unfocusedLabelColor = Pink,
-    focusedContainerColor = Color.White,
-    unfocusedContainerColor = Color.White
+    unfocusedLabelColor = Pink.copy(alpha = 0.9f),
+    errorBorderColor = Pink,
+    errorLabelColor = Pink,
+    errorCursorColor = Pink,
+    focusedContainerColor = LightPink.copy(alpha = 0.35f),
+    unfocusedContainerColor = LightPink.copy(alpha = 0.25f),
+    errorContainerColor = LightPink.copy(alpha = 0.25f)
 )
-
 @Composable
 private fun WoopperPrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
     Button(
@@ -941,7 +1067,12 @@ fun WoopperRecipeCard(recipe: Recipe, onCardClick: () -> Unit, modifier: Modifie
                     AsyncImage(
                         model = recipe.imagePath,
                         contentDescription = recipe.name,
-                        modifier = Modifier.fillMaxSize().clip(androidx.compose.foundation.shape.RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                        modifier = Modifier.fillMaxSize().clip(
+                            androidx.compose.foundation.shape.RoundedCornerShape(
+                                topStart = 12.dp,
+                                topEnd = 12.dp
+                            )
+                        ),
                         contentScale = ContentScale.Crop
                     )
                 } else {
@@ -973,292 +1104,6 @@ fun WoopperRecipeCard(recipe: Recipe, onCardClick: () -> Unit, modifier: Modifie
         }
     }
 }
-
-@Composable
-fun CreateRecipeScreen(
-    addRecipeViewModel: AddRecipeViewModel = viewModel(factory = AppViewModelProvider.Factory),
-    onFinished: () -> Unit
-) {
-    var name by remember { mutableStateOf("") }
-    var mealType by remember { mutableStateOf("") }
-    var categories by remember { mutableStateOf<List<String>>(emptyList()) }
-    var totalTime by remember { mutableStateOf("") }
-    var difficulty by remember { mutableStateOf("") }
-    var notes by remember { mutableStateOf("") }
-    var servingSize by remember { mutableStateOf("") }
-
-    val ingredients = remember { mutableStateListOf<IngredientDraft>() }
-    val instructions = remember { mutableStateListOf<InstructionDraft>() }
-
-    val snackbarHostState = remember { SnackbarHostState() }
-    val nameBivr = remember { BringIntoViewRequester() }
-    val mealTypeBivr = remember { BringIntoViewRequester() }
-
-    var editingIngredientIndex by remember { mutableStateOf<Int?>(null) }
-    var editingInstructionIndex by remember { mutableStateOf<Int?>(null) }
-
-    editingIngredientIndex?.takeIf { it in ingredients.indices }?.let { idx ->
-        EditIngredientDialog(
-            initial = ingredients[idx],
-            onDismiss = { editingIngredientIndex = null },
-            onSave = { updated -> ingredients[idx] = updated; editingIngredientIndex = null }
-        )
-    }
-
-    editingInstructionIndex?.takeIf { it in instructions.indices }?.let { idx ->
-        EditInstructionDialog(
-            initial = instructions[idx],
-            onDismiss = { editingInstructionIndex = null },
-            onSave = { updated -> instructions[idx] = updated; editingInstructionIndex = null }
-        )
-    }
-
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var pickedImageUri by remember { mutableStateOf<Uri?>(null) }
-
-    fun validateOrToast(): Boolean {
-        val trimmedName = name.trim()
-        if (trimmedName.isBlank()) {
-            scope.launch {
-                scrollToField(nameBivr)
-                snackbarHostState.showSnackbar("Name is required")
-            }
-            return false
-        }
-        if (mealType.isBlank()) {
-            scope.launch {
-                scrollToField(mealTypeBivr)
-                snackbarHostState.showSnackbar("Meal type is required")
-            }
-            return false
-        }
-        return true
-    }
-
-    suspend fun doSave() {
-        val trimmedName = name.trim()
-        val total = totalTime.toIntOrNull() ?: 0
-        val diff = (difficulty.toIntOrNull() ?: 1).coerceIn(1, 5)
-        val serveSize = (servingSize.toIntOrNull() ?: 1).coerceAtLeast(1)
-
-        val ingredientList = ingredients.map {
-            Ingredient(
-                recipeId = 0,
-                name = it.name,
-                amount = it.amount.ifBlank { null },
-                unit = it.unit.ifBlank { null }
-            )
-        }
-
-        val instructionList = instructions.mapIndexed { idx, s ->
-            Instruction(
-                recipeId = 0,
-                stepNumber = idx + 1,
-                text = s.text,
-                timer = s.timer.toIntOrNull() ?: 0
-            )
-        }
-
-        val savedPath = pickedImageUri?.let { copyImageToInternalStorage(context, it) }
-
-        addRecipeViewModel.addRecipe(
-            name = trimmedName,
-            mealType = mealType,
-            categories = categories.joinToString(","),
-            imagePath = savedPath,
-            ingredients = ingredientList,
-            instructions = instructionList,
-            notes = notes,
-            totalTime = total,
-            difficulty = diff,
-            servingSize = serveSize
-        )
-        onFinished()
-    }
-
-    Box(Modifier.fillMaxSize().background(Peach)) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 170.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = Blue),
-                    border = BorderStroke(1.dp, Pink)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        IconButton(onClick = onFinished) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = Color(0xFF111827)
-                            )
-                        }
-
-                        Box(contentAlignment = Alignment.Center) {
-                            Text("Create", fontSize = 38.sp, fontWeight = FontWeight.Bold, color = Pink, modifier = Modifier.offset((-2).dp, 0.dp))
-                            Text("Create", fontSize = 38.sp, fontWeight = FontWeight.Bold, color = Pink, modifier = Modifier.offset((2).dp, 0.dp))
-                            Text("Create", fontSize = 38.sp, fontWeight = FontWeight.Bold, color = Pink, modifier = Modifier.offset(0.dp, (-2).dp))
-                            Text("Create", fontSize = 38.sp, fontWeight = FontWeight.Bold, color = Pink, modifier = Modifier.offset(0.dp, (2).dp))
-                            Text("Create", fontSize = 38.sp, fontWeight = FontWeight.Bold, color = LightPink)
-                        }
-
-                        IconButton(onClick = {
-                            if (!validateOrToast()) return@IconButton
-                            scope.launch { doSave() }
-                        }) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = "Save",
-                                tint = Color(0xFF111827)
-                            )
-                        }
-                    }
-                }
-            }
-
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                    border = BorderStroke(1.dp, Pink)
-                ) {
-                    Column(
-                        Modifier.fillMaxWidth().padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
-                    ) {
-                        OutlinedTextField(
-                            value = name,
-                            onValueChange = { name = it },
-                            label = { Text("Name") },
-                            modifier = Modifier.fillMaxWidth().bringIntoViewRequester(nameBivr),
-                            colors = woopperTextFieldColors(),
-                            singleLine = true
-                        )
-
-                        Box(Modifier.bringIntoViewRequester(mealTypeBivr)) {
-                            MealTypeDropdown(
-                                mealType = mealType,
-                                onMealTypeChange = { mealType = it },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-
-                        CategoriesMultiDropdown(
-                            selected = categories,
-                            onSelectedChange = { categories = it },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            DigitsOnlyField(
-                                value = totalTime,
-                                onValueChange = { totalTime = it },
-                                label = { Text("Total time (min)") },
-                                modifier = Modifier.weight(1f),
-                                maxDigits = 4,
-                                min = 0
-                            )
-                            DigitsOnlyField(
-                                value = difficulty,
-                                onValueChange = { difficulty = it },
-                                label = { Text("Difficulty (1-5)") },
-                                modifier = Modifier.weight(1f),
-                                maxDigits = 1,
-                                min = 1,
-                                max = 5
-                            )
-                            DigitsOnlyField(
-                                value = servingSize,
-                                onValueChange = { servingSize = it },
-                                label = { Text("Servings") },
-                                modifier = Modifier.weight(1f),
-                                maxDigits = 3,
-                                min = 1
-                            )
-                        }
-
-                        OutlinedCard(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            border = BorderStroke(1.dp, Pink),
-                            colors = CardDefaults.outlinedCardColors(containerColor = Color.White)
-                        ) {
-                            Column(Modifier.fillMaxWidth().padding(14.dp)) {
-                                IngredientsEditor(
-                                    ingredients = ingredients,
-                                    onAdd = { ingredients.add(it) },
-                                    onRemoveAt = { idx -> ingredients.removeAt(idx) },
-                                    onEditAt = { idx -> editingIngredientIndex = idx },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                        }
-
-                        OutlinedCard(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            border = BorderStroke(1.dp, Pink),
-                            colors = CardDefaults.outlinedCardColors(containerColor = Color.White)
-                        ) {
-                            Column(Modifier.fillMaxWidth().padding(14.dp)) {
-                                InstructionsEditor(
-                                    instructions = instructions,
-                                    onAdd = { instructions.add(it) },
-                                    onRemoveAt = { idx -> instructions.removeAt(idx) },
-                                    onEditAt = { idx -> editingInstructionIndex = idx },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                        }
-
-                        OutlinedTextField(
-                            value = notes,
-                            onValueChange = { notes = it },
-                            label = { Text("Notes (optional)") },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = woopperTextFieldColors(),
-                            minLines = 2
-                        )
-
-                        OutlinedCard(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            border = BorderStroke(1.dp, Pink),
-                            colors = CardDefaults.outlinedCardColors(containerColor = Color.White)
-                        ) {
-                            Column(Modifier.fillMaxWidth().padding(14.dp)) {
-                                ImagePickerField(
-                                    existingImagePath = null,
-                                    pickedImageUri = pickedImageUri,
-                                    onPick = { pickedImageUri = it },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 140.dp)
-        )
-    }
-}
-
-
 
 @Composable
 fun RecipeDetailView(
@@ -1653,6 +1498,434 @@ fun RecipeDetails(
         }
     }
 }
+@Composable
+private fun WoopperFieldWrap(
+    modifier: Modifier = Modifier,
+    title: String? = null,
+    required: Boolean = false,
+    highlight: Boolean = false,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val border = if (highlight) BorderStroke(2.dp, Pink) else BorderStroke(1.dp, Pink.copy(alpha = 0.65f))
+    val bg = if (highlight) LightPink.copy(alpha = 0.28f) else LightPink.copy(alpha = 0.18f)
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(bg)
+            .padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        if (title != null) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = title,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF111827),
+                    modifier = Modifier.weight(1f)
+                )
+                if (required) Text("*", color = Pink, fontWeight = FontWeight.Black, fontSize = 18.sp)
+            }
+        }
+
+        OutlinedCard(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            border = border,
+            colors = CardDefaults.outlinedCardColors(containerColor = Color.White)
+        ) {
+            Column(
+                Modifier.fillMaxWidth().padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                content()
+            }
+        }
+    }
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun WoopperFormScaffold(
+    title: String,
+    onBack: () -> Unit,
+    onSave: () -> Unit,
+    saveEnabled: Boolean,
+    snackbarHostState: SnackbarHostState,
+    bottomBar: @Composable (() -> Unit)? = null,
+    content: @Composable (PaddingValues) -> Unit
+) {
+    androidx.compose.material3.Scaffold(
+        topBar = {
+            Surface(color = Blue, tonalElevation = 2.dp) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = Color(0xFF111827)
+                        )
+                    }
+
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(title, fontSize = 36.sp, fontWeight = FontWeight.Black, color = Pink, modifier = Modifier.offset((-2).dp, 0.dp))
+                        Text(title, fontSize = 36.sp, fontWeight = FontWeight.Black, color = Pink, modifier = Modifier.offset((2).dp, 0.dp))
+                        Text(title, fontSize = 36.sp, fontWeight = FontWeight.Black, color = Pink, modifier = Modifier.offset(0.dp, (-2).dp))
+                        Text(title, fontSize = 36.sp, fontWeight = FontWeight.Black, color = Pink, modifier = Modifier.offset(0.dp, (2).dp))
+                        Text(title, fontSize = 36.sp, fontWeight = FontWeight.Black, color = LightPink)
+                    }
+
+                    IconButton(onClick = onSave) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Save",
+                            tint = if (saveEnabled) Color(0xFF111827) else Color(0xFF111827).copy(alpha = 0.35f)
+                        )
+                    }
+                }
+            }
+        },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        bottomBar = { bottomBar?.invoke() },
+        containerColor = Peach
+    ) { padding -> content(padding) }
+}
+
+
+@Composable
+private fun WoopperSectionCard(
+    title: String,
+    modifier: Modifier = Modifier,
+    trailing: (@Composable () -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, Pink),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = title,
+                    style = androidx.compose.material3.MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF111827),
+                    modifier = Modifier.weight(1f)
+                )
+                trailing?.invoke()
+            }
+            content()
+        }
+    }
+}
+
+@Composable
+private fun WoopperQuickMetaRow(
+    totalTime: String,
+    onTotalTime: (String) -> Unit,
+    difficulty: String,
+    onDifficulty: (String) -> Unit,
+    servingSize: String,
+    onServingSize: (String) -> Unit
+) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        DigitsOnlyField(
+            value = totalTime,
+            onValueChange = onTotalTime,
+            label = { Text("Total (min)") },
+            modifier = Modifier.weight(1f),
+            maxDigits = 4,
+            min = 0
+        )
+        DigitsOnlyField(
+            value = difficulty,
+            onValueChange = onDifficulty,
+            label = { Text("Diff 1–5") },
+            modifier = Modifier.weight(1f),
+            maxDigits = 1,
+            min = 1,
+            max = 5
+        )
+        DigitsOnlyField(
+            value = servingSize,
+            onValueChange = onServingSize,
+            label = { Text("Servings") },
+            modifier = Modifier.weight(1f),
+            maxDigits = 3,
+            min = 1
+        )
+    }
+}
+
+@Composable
+fun CreateRecipeScreen(
+    addRecipeViewModel: AddRecipeViewModel = viewModel(factory = AppViewModelProvider.Factory),
+    onFinished: () -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var mealType by remember { mutableStateOf("") }
+    var categories by remember { mutableStateOf<List<String>>(emptyList()) }
+    var totalTime by remember { mutableStateOf("") }
+    var difficulty by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+    var servingSize by remember { mutableStateOf("") }
+
+    val ingredients = remember { mutableStateListOf<IngredientDraft>() }
+    val instructions = remember { mutableStateListOf<InstructionDraft>() }
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+
+    var pickedImageUri by remember { mutableStateOf<Uri?>(null) }
+
+    var editingIngredientIndex by remember { mutableStateOf<Int?>(null) }
+    var editingInstructionIndex by remember { mutableStateOf<Int?>(null) }
+
+    var nameError by remember { mutableStateOf(false) }
+    var mealTypeError by remember { mutableStateOf(false) }
+    var validationMessage by remember { mutableStateOf<String?>(null) }
+
+    editingIngredientIndex?.takeIf { it in ingredients.indices }?.let { idx ->
+        EditIngredientDialog(
+            initial = ingredients[idx],
+            onDismiss = { editingIngredientIndex = null },
+            onSave = { updated -> ingredients[idx] = updated; editingIngredientIndex = null }
+        )
+    }
+
+    editingInstructionIndex?.takeIf { it in instructions.indices }?.let { idx ->
+        EditInstructionDialog(
+            initial = instructions[idx],
+            onDismiss = { editingInstructionIndex = null },
+            onSave = { updated -> instructions[idx] = updated; editingInstructionIndex = null }
+        )
+    }
+
+    fun validate(): Boolean {
+        val nErr = name.trim().isBlank()
+        val mErr = mealType.isBlank()
+        nameError = nErr
+        mealTypeError = mErr
+
+        validationMessage = when {
+            nErr && mErr -> "Please fill in: Name and Meal type"
+            nErr -> "Please fill in: Name"
+            mErr -> "Please fill in: Meal type"
+            else -> null
+        }
+
+        return validationMessage == null
+    }
+
+    suspend fun doSave() {
+        val trimmedName = name.trim()
+        val total = totalTime.toIntOrNull() ?: 0
+        val diff = (difficulty.toIntOrNull() ?: 1).coerceIn(1, 5)
+        val serveSize = (servingSize.toIntOrNull() ?: 1).coerceAtLeast(1)
+
+        val ingredientList = ingredients.map {
+            Ingredient(
+                recipeId = 0,
+                name = it.name,
+                amount = it.amount.ifBlank { null },
+                unit = it.unit.ifBlank { null }
+            )
+        }
+
+        val instructionList = instructions.mapIndexed { idx, s ->
+            Instruction(
+                recipeId = 0,
+                stepNumber = idx + 1,
+                text = s.text,
+                timer = s.timer.toIntOrNull() ?: 0
+            )
+        }
+
+        val savedPath = pickedImageUri?.let { copyImageToInternalStorage(context, it) }
+
+        addRecipeViewModel.addRecipe(
+            name = trimmedName,
+            mealType = mealType,
+            categories = categories.joinToString(","),
+            imagePath = savedPath,
+            ingredients = ingredientList,
+            instructions = instructionList,
+            notes = notes,
+            totalTime = total,
+            difficulty = diff,
+            servingSize = serveSize
+        )
+        onFinished()
+    }
+
+    WoopperFormScaffold(
+        title = "Create",
+        onBack = onFinished,
+        onSave = {
+            if (!validate()) return@WoopperFormScaffold
+            scope.launch { doSave() }
+        },
+        saveEnabled = name.trim().isNotBlank() && mealType.isNotBlank(),
+        snackbarHostState = snackbarHostState,
+        bottomBar = {
+            validationMessage?.let { msg ->
+                Surface(color = Peach, tonalElevation = 2.dp) {
+                    Text(
+                        text = msg,
+                        color = Color(0xFF7C2D12),
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                WoopperInputCard(title = "") {
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = {
+                            name = it
+                            if (nameError) nameError = name.trim().isBlank()
+                            if (validationMessage != null) validationMessage = null
+                        },
+                        label = { Text("Recipe name*") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = woopperTextFieldColors(),
+                        shape = RoundedCornerShape(14.dp),
+                        singleLine = true,
+                        isError = nameError
+                    )
+
+                    MealTypeDropdown(
+                        mealType = mealType,
+                        onMealTypeChange = {
+                            mealType = it
+                            if (mealTypeError) mealTypeError = mealType.isBlank()
+                            if (validationMessage != null) validationMessage = null
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    CategoriesMultiDropdown(
+                        selected = categories,
+                        onSelectedChange = { categories = it },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        DigitsOnlyField(
+                            value = totalTime,
+                            onValueChange = { totalTime = it },
+                            label = { Text("Total (min)") },
+                            modifier = Modifier.weight(1f),
+                            maxDigits = 4,
+                            min = 0,
+                            colors = woopperTextFieldColors()
+                        )
+                        DigitsOnlyField(
+                            value = difficulty,
+                            onValueChange = { difficulty = it },
+                            label = { Text("Diff 1–5") },
+                            modifier = Modifier.weight(1f),
+                            maxDigits = 1,
+                            min = 1,
+                            max = 5,
+                            colors = woopperTextFieldColors()
+                        )
+                        DigitsOnlyField(
+                            value = servingSize,
+                            onValueChange = { servingSize = it },
+                            label = { Text("Servings") },
+                            modifier = Modifier.weight(1f),
+                            maxDigits = 3,
+                            min = 1,
+                            colors = woopperTextFieldColors()
+                        )
+                    }
+                }
+            }
+
+            item {
+                WoopperInputCard(title = "Ingredients") {
+                    IngredientsEditor(
+                        ingredients = ingredients,
+                        onAdd = { ingredients.add(it) },
+                        onRemoveAt = { idx -> ingredients.removeAt(idx) },
+                        onEditAt = { idx -> editingIngredientIndex = idx },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
+            item {
+                WoopperInputCard(title = "Steps") {
+                    InstructionsEditor(
+                        instructions = instructions,
+                        onAdd = { instructions.add(it) },
+                        onRemoveAt = { idx -> instructions.removeAt(idx) },
+                        onEditAt = { idx -> editingInstructionIndex = idx },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
+            item {
+                WoopperInputCard(title = "") {
+                    OutlinedTextField(
+                        value = notes,
+                        onValueChange = { notes = it },
+                        label = { Text("Notes") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = woopperTextFieldColors(),
+                        shape = RoundedCornerShape(14.dp),
+                        minLines = 3
+                    )
+                }
+            }
+
+            item {
+                WoopperInputCard(title = "") {
+                    ImagePickerField(
+                        existingImagePath = null,
+                        pickedImageUri = pickedImageUri,
+                        onPick = { pickedImageUri = it },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
+            item {
+                Button(
+                    onClick = {
+                        if (!validate()) return@Button
+                        scope.launch { doSave() }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(54.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Blue, contentColor = Color.White),
+                    shape = RoundedCornerShape(16.dp),
+                    enabled = true
+                ) { Text("Save Recipe", fontWeight = FontWeight.Black) }
+            }
+        }
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1702,28 +1975,26 @@ fun EditRecipeScreen(
     var pickedImageUri by remember { mutableStateOf<Uri?>(null) }
 
     val snackbarHostState = remember { SnackbarHostState() }
-    val nameBivr = remember { BringIntoViewRequester() }
-    val mealTypeBivr = remember { BringIntoViewRequester() }
 
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var nameError by remember { mutableStateOf(false) }
+    var mealTypeError by remember { mutableStateOf(false) }
+    var validationMessage by remember { mutableStateOf<String?>(null) }
 
-    fun validateOrToast(): Boolean {
-        val trimmedName = ui.name.trim()
-        if (trimmedName.isBlank()) {
-            scope.launch {
-                scrollToField(nameBivr)
-                snackbarHostState.showSnackbar("Name is required")
-            }
-            return false
+    fun validate(): Boolean {
+        val nErr = ui.name.trim().isBlank()
+        val mErr = ui.mealType.isBlank()
+        nameError = nErr
+        mealTypeError = mErr
+
+        validationMessage = when {
+            nErr && mErr -> "Please fill in: Name and Meal type"
+            nErr -> "Please fill in: Name"
+            mErr -> "Please fill in: Meal type"
+            else -> null
         }
-        if (ui.mealType.isBlank()) {
-            scope.launch {
-                scrollToField(mealTypeBivr)
-                snackbarHostState.showSnackbar("Meal type is required")
-            }
-            return false
-        }
-        return true
+
+        return validationMessage == null
     }
 
     suspend fun doSave() {
@@ -1740,8 +2011,9 @@ fun EditRecipeScreen(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("Delete recipe?") },
-            text = { Text("This will permanently delete the recipe. This cannot be undone.") },
+            containerColor = Peach,
+            title = { Text("Delete recipe?", fontWeight = FontWeight.Black, color = Color(0xFF111827)) },
+            text = { Text("This will permanently delete the recipe. This cannot be undone.", color = Color(0xFF111827)) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -1749,199 +2021,187 @@ fun EditRecipeScreen(
                         viewModel.delete(onDeleted)
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Pink, contentColor = Color.White)
-                ) { Text("Delete") }
+                ) { Text("Delete", fontWeight = FontWeight.Black) }
             },
             dismissButton = {
-                OutlinedButton(onClick = { showDeleteConfirm = false }) { Text("Cancel") }
+                OutlinedButton(
+                    onClick = { showDeleteConfirm = false },
+                    border = BorderStroke(1.dp, Pink),
+                    colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Pink)
+                ) { Text("Cancel", fontWeight = FontWeight.Black) }
             }
         )
     }
 
-    Box(Modifier.fillMaxSize().background(Peach)) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 0.dp, bottom = 190.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = Blue),
-                    border = BorderStroke(1.dp, Pink)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        IconButton(onClick = onSaved) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Back",
-                                tint = Color(0xFF111827)
-                            )
-                        }
-
-                        Box(contentAlignment = Alignment.Center) {
-                            Text("Edit", fontSize = 38.sp, fontWeight = FontWeight.Bold, color = Pink, modifier = Modifier.offset((-2).dp, 0.dp))
-                            Text("Edit", fontSize = 38.sp, fontWeight = FontWeight.Bold, color = Pink, modifier = Modifier.offset((2).dp, 0.dp))
-                            Text("Edit", fontSize = 38.sp, fontWeight = FontWeight.Bold, color = Pink, modifier = Modifier.offset(0.dp, (-2).dp))
-                            Text("Edit", fontSize = 38.sp, fontWeight = FontWeight.Bold, color = Pink, modifier = Modifier.offset(0.dp, (2).dp))
-                            Text("Edit", fontSize = 38.sp, fontWeight = FontWeight.Bold, color = LightPink)
-                        }
-
-                        IconButton(onClick = {
-                            if (!validateOrToast()) return@IconButton
-                            scope.launch { doSave() }
-                        }) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = "Save changes",
-                                tint = Color(0xFF111827)
-                            )
-                        }
+    WoopperFormScaffold(
+        title = "Edit",
+        onBack = onSaved,
+        onSave = {
+            if (!validate()) return@WoopperFormScaffold
+            scope.launch { doSave() }
+        },
+        saveEnabled = ui.name.trim().isNotBlank() && ui.mealType.isNotBlank(),
+        snackbarHostState = snackbarHostState,
+        bottomBar = {
+            Surface(color = Peach, tonalElevation = 2.dp) {
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    validationMessage?.let { msg ->
+                        Text(
+                            text = msg,
+                            color = Color(0xFF7C2D12),
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center
+                        )
                     }
-                }
-            }
-
-            item {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                    border = BorderStroke(1.dp, Pink)
-                ) {
-                    Column(
-                        Modifier.fillMaxWidth().padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        OutlinedTextField(
-                            value = ui.name,
-                            onValueChange = viewModel::updateName,
-                            label = { Text("Name") },
-                            modifier = Modifier.fillMaxWidth().bringIntoViewRequester(nameBivr),
-                            colors = woopperTextFieldColors(),
-                            singleLine = true
-                        )
-
-                        Box(Modifier.bringIntoViewRequester(mealTypeBivr)) {
-                            MealTypeDropdown(
-                                mealType = ui.mealType,
-                                onMealTypeChange = viewModel::updateMealType,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-
-                        CategoriesMultiDropdown(
-                            selected = ui.categories,
-                            onSelectedChange = viewModel::updateCategories,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            DigitsOnlyField(
-                                value = ui.totalTime,
-                                onValueChange = viewModel::updateTotalTime,
-                                label = { Text("Total time (min)") },
-                                modifier = Modifier.weight(1f),
-                                maxDigits = 4,
-                                min = 0
-                            )
-                            DigitsOnlyField(
-                                value = ui.difficulty,
-                                onValueChange = viewModel::updateDifficulty,
-                                label = { Text("Difficulty (1-5)") },
-                                modifier = Modifier.weight(1f),
-                                maxDigits = 1,
-                                min = 1,
-                                max = 5
-                            )
-                            DigitsOnlyField(
-                                value = ui.servingSize,
-                                onValueChange = viewModel::updateServingSize,
-                                label = { Text("Servings") },
-                                modifier = Modifier.weight(1f),
-                                maxDigits = 3,
-                                min = 1
-                            )
-                        }
-
-                        OutlinedCard(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
+                        OutlinedButton(
+                            onClick = { showDeleteConfirm = true },
+                            modifier = Modifier.weight(1f).height(54.dp),
                             border = BorderStroke(1.dp, Pink),
-                            colors = CardDefaults.outlinedCardColors(containerColor = Color.White)
-                        ) {
-                            Column(Modifier.fillMaxWidth().padding(14.dp)) {
-                                IngredientsEditor(
-                                    ingredients = ingredients,
-                                    onAdd = { ingredients.add(it) },
-                                    onRemoveAt = { idx -> ingredients.removeAt(idx) },
-                                    onEditAt = { idx -> editingIngredientIndex = idx },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                        }
+                            colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Pink),
+                            shape = RoundedCornerShape(16.dp)
+                        ) { Text("Delete", fontWeight = FontWeight.Black) }
 
-                        OutlinedCard(
-                            modifier = Modifier.fillMaxWidth(),
+                        Button(
+                            onClick = {
+                                if (!validate()) return@Button
+                                scope.launch { doSave() }
+                            },
+                            modifier = Modifier.weight(1f).height(54.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Blue, contentColor = Color.White),
                             shape = RoundedCornerShape(16.dp),
-                            border = BorderStroke(1.dp, Pink),
-                            colors = CardDefaults.outlinedCardColors(containerColor = Color.White)
-                        ) {
-                            Column(Modifier.fillMaxWidth().padding(14.dp)) {
-                                InstructionsEditor(
-                                    instructions = instructions,
-                                    onAdd = { instructions.add(it) },
-                                    onRemoveAt = { idx -> instructions.removeAt(idx) },
-                                    onEditAt = { idx -> editingInstructionIndex = idx },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                        }
-
-                        OutlinedTextField(
-                            value = ui.notes,
-                            onValueChange = viewModel::updateNotes,
-                            label = { Text("Notes") },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = woopperTextFieldColors(),
-                            minLines = 2
-                        )
-
-                        OutlinedCard(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            border = BorderStroke(1.dp, Pink),
-                            colors = CardDefaults.outlinedCardColors(containerColor = Color.White)
-                        ) {
-                            Column(Modifier.fillMaxWidth().padding(14.dp)) {
-                                ImagePickerField(
-                                    existingImagePath = ui.imagePath,
-                                    pickedImageUri = pickedImageUri,
-                                    onPick = { pickedImageUri = it },
-                                    onRemoveExisting = { viewModel.updateImagePath(null) },
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                        }
+                            enabled = true
+                        ) { Text("Save", fontWeight = FontWeight.Black) }
                     }
                 }
             }
         }
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(padding),
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                WoopperInputCard(title = "") {
+                    OutlinedTextField(
+                        value = ui.name,
+                        onValueChange = {
+                            viewModel.updateName(it)
+                            if (nameError) nameError = ui.name.trim().isBlank()
+                            if (validationMessage != null) validationMessage = null
+                        },
+                        label = { Text("Recipe name*") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = woopperTextFieldColors(),
+                        shape = RoundedCornerShape(14.dp),
+                        singleLine = true,
+                        isError = nameError
+                    )
 
-        Button(
-            onClick = { showDeleteConfirm = true },
-            modifier = Modifier.fillMaxWidth().height(48.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Pink, contentColor = Color.White),
-            shape = RoundedCornerShape(14.dp)
-        ) { Text("Delete recipe", fontWeight = FontWeight.Medium) }
+                    MealTypeDropdown(
+                        mealType = ui.mealType,
+                        onMealTypeChange = {
+                            viewModel.updateMealType(it)
+                            if (mealTypeError) mealTypeError = ui.mealType.isBlank()
+                            if (validationMessage != null) validationMessage = null
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
 
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 150.dp)
-        )
+                    CategoriesMultiDropdown(
+                        selected = ui.categories,
+                        onSelectedChange = viewModel::updateCategories,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        DigitsOnlyField(
+                            value = ui.totalTime,
+                            onValueChange = viewModel::updateTotalTime,
+                            label = { Text("Total (min)") },
+                            modifier = Modifier.weight(1f),
+                            maxDigits = 4,
+                            min = 0,
+                            colors = woopperTextFieldColors()
+                        )
+                        DigitsOnlyField(
+                            value = ui.difficulty,
+                            onValueChange = viewModel::updateDifficulty,
+                            label = { Text("Diff 1–5") },
+                            modifier = Modifier.weight(1f),
+                            maxDigits = 1,
+                            min = 1,
+                            max = 5,
+                            colors = woopperTextFieldColors()
+                        )
+                        DigitsOnlyField(
+                            value = ui.servingSize,
+                            onValueChange = viewModel::updateServingSize,
+                            label = { Text("Servings") },
+                            modifier = Modifier.weight(1f),
+                            maxDigits = 3,
+                            min = 1,
+                            colors = woopperTextFieldColors()
+                        )
+                    }
+                }
+            }
+
+            item {
+                WoopperInputCard(title = "Ingredients") {
+                    IngredientsEditor(
+                        ingredients = ingredients,
+                        onAdd = { ingredients.add(it) },
+                        onRemoveAt = { idx -> ingredients.removeAt(idx) },
+                        onEditAt = { idx -> editingIngredientIndex = idx },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
+            item {
+                WoopperInputCard(title = "Steps") {
+                    InstructionsEditor(
+                        instructions = instructions,
+                        onAdd = { instructions.add(it) },
+                        onRemoveAt = { idx -> instructions.removeAt(idx) },
+                        onEditAt = { idx -> editingInstructionIndex = idx },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
+            item {
+                WoopperInputCard(title = "") {
+                    OutlinedTextField(
+                        value = ui.notes,
+                        onValueChange = viewModel::updateNotes,
+                        label = { Text("Notes") },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = woopperTextFieldColors(),
+                        shape = RoundedCornerShape(14.dp),
+                        minLines = 3
+                    )
+                }
+            }
+
+            item {
+                WoopperInputCard(title = "") {
+                    ImagePickerField(
+                        existingImagePath = ui.imagePath,
+                        pickedImageUri = pickedImageUri,
+                        onPick = { pickedImageUri = it },
+                        onRemoveExisting = { viewModel.updateImagePath(null) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
     }
 }
