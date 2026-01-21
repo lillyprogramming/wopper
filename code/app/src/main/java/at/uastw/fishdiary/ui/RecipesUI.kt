@@ -269,6 +269,17 @@ private fun EditIngredientDialog(
         title = { Text("Edit Ingredient", fontWeight = FontWeight.Black, color = Color(0xFF111827)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Ingredient") },
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = nameErr,
+                    supportingText = { if (nameErr) Text("Required", color = Pink) },
+                    colors = dialogFieldColors,
+                    shape = RoundedCornerShape(14.dp),
+                    singleLine = true
+                )
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(
                         value = amount,
@@ -289,17 +300,6 @@ private fun EditIngredientDialog(
                     )
                 }
 
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Ingredient") },
-                    modifier = Modifier.fillMaxWidth(),
-                    isError = nameErr,
-                    supportingText = { if (nameErr) Text("Required", color = Pink) },
-                    colors = dialogFieldColors,
-                    shape = RoundedCornerShape(14.dp),
-                    singleLine = true
-                )
             }
         },
         confirmButton = {
@@ -411,6 +411,18 @@ private fun IngredientsEditor(
     Column(modifier) {
         Spacer(Modifier.height(8.dp))
 
+        OutlinedTextField(
+            value = name,
+            onValueChange = { name = it },
+            label = { Text("Ingredient") },
+            modifier = Modifier.fillMaxWidth(),
+            colors = woopperTextFieldColors(),
+            shape = RoundedCornerShape(14.dp),
+            singleLine = true
+        )
+
+        Spacer(Modifier.height(10.dp))
+
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             OutlinedTextField(
                 value = amount,
@@ -428,17 +440,6 @@ private fun IngredientsEditor(
 
         Spacer(Modifier.height(10.dp))
 
-        OutlinedTextField(
-            value = name,
-            onValueChange = { name = it },
-            label = { Text("Ingredient") },
-            modifier = Modifier.fillMaxWidth(),
-            colors = woopperTextFieldColors(),
-            shape = RoundedCornerShape(14.dp),
-            singleLine = true
-        )
-
-        Spacer(Modifier.height(10.dp))
 
         Button(
             onClick = {
