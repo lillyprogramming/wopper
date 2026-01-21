@@ -149,13 +149,6 @@ private fun DigitsOnlyField(
         colors = colors
     )
 }
-
-
-private suspend fun scrollToField(requester: BringIntoViewRequester) {
-    delay(50)
-    requester.bringIntoView()
-}
-
 enum class Routes(val route: String) {
     List("list"),
     Create("create"),
@@ -231,9 +224,6 @@ private fun WoopperInputCard(
             modifier = Modifier.fillMaxWidth().padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            if (title.isNotBlank()) {
-                Text(title, fontWeight = FontWeight.Black, color = Color(0xFF111827), fontSize = 18.sp)
-            }
             content()
         }
     }
@@ -408,7 +398,6 @@ private fun IngredientsEditor(
     var name by remember { mutableStateOf("") }
 
     Column(modifier) {
-        Text("Ingredients", style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(8.dp))
 
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -504,7 +493,6 @@ private fun InstructionsEditor(
     var timer by remember { mutableStateOf("") }
 
     Column(modifier) {
-        Text("Instructions", style = androidx.compose.material3.MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(8.dp))
 
         OutlinedTextField(
@@ -1315,7 +1303,19 @@ private fun ServingsAdjuster(
                         },
                         label = { Text("Servings") },
                         singleLine = true,
-                        colors = woopperTextFieldColors()
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Pink,
+                            unfocusedBorderColor = Pink.copy(alpha = 0.85f),
+                            cursorColor = Pink,
+                            focusedLabelColor = Pink,
+                            unfocusedLabelColor = Pink.copy(alpha = 0.9f),
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            errorContainerColor = Color.White,
+                            errorBorderColor = Pink,
+                            errorCursorColor = Pink,
+                            errorLabelColor = Pink
+                        )
                     )
                 }
             },
@@ -1336,6 +1336,7 @@ private fun ServingsAdjuster(
         )
     }
 }
+
 
 private fun parseAmountToDouble(amount: String): Double? {
     val a = amount.trim().lowercase()
@@ -1430,7 +1431,7 @@ fun RecipeDetails(
                 ) {
                     Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                         FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            horizontalArrangement = Arrangement.Center,
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
                         ) {
@@ -1467,6 +1468,7 @@ fun RecipeDetails(
 
                         Spacer(Modifier.height(16.dp))
 
+                        Text("Ingredients:", color = Color.Black, fontWeight = FontWeight.Medium)
                         recipe.ingredients.forEach { ing ->
                             val baseAmountStr = ing.amount?.trim().orEmpty()
                             val baseAmountNum = baseAmountStr.takeIf { it.isNotBlank() }?.let(::parseAmountToDouble)
@@ -1486,6 +1488,7 @@ fun RecipeDetails(
 
                         Spacer(Modifier.height(12.dp))
 
+                        Text("Instructions:", color = Color.Black, fontWeight = FontWeight.Medium)
                         recipe.instructions.sortedBy { it.stepNumber }.forEach { step ->
                             Row(
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
@@ -1505,10 +1508,10 @@ fun RecipeDetails(
 
                         Spacer(Modifier.height(12.dp))
 
-                        if (recipe.notes.isNotBlank()) {
-                            Text(recipe.notes, color = Color.Black)
-                            Spacer(Modifier.height(14.dp))
-                        }
+                        Text("Notes:", color = Color.Black, fontWeight = FontWeight.Medium)
+                        Text(recipe.notes, color = Color.Black)
+
+                        Spacer(Modifier.height(20.dp))
 
                         WoopperPrimaryButton(
                             text = "Set Timer",
@@ -1538,53 +1541,6 @@ fun RecipeDetails(
         }
     }
 }
-@Composable
-private fun WoopperFieldWrap(
-    modifier: Modifier = Modifier,
-    title: String? = null,
-    required: Boolean = false,
-    highlight: Boolean = false,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    val border = if (highlight) BorderStroke(2.dp, Pink) else BorderStroke(1.dp, Pink.copy(alpha = 0.65f))
-    val bg = if (highlight) LightPink.copy(alpha = 0.28f) else LightPink.copy(alpha = 0.18f)
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(bg)
-            .padding(10.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        if (title != null) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = title,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF111827),
-                    modifier = Modifier.weight(1f)
-                )
-                if (required) Text("*", color = Pink, fontWeight = FontWeight.Black, fontSize = 18.sp)
-            }
-        }
-
-        OutlinedCard(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(14.dp),
-            border = border,
-            colors = CardDefaults.outlinedCardColors(containerColor = Color.White)
-        ) {
-            Column(
-                Modifier.fillMaxWidth().padding(10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                content()
-            }
-        }
-    }
-}
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
