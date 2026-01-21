@@ -1,7 +1,9 @@
 package at.uastw.fishdiary.ui
 
+import android.media.MediaPlayer
 import android.content.Context
 import android.net.Uri
+import androidx.activity.compose.R
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -70,6 +72,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -113,6 +116,10 @@ private val Blue = Color(0xFFB0D0D3)
 private val Pink = Color(0xFFC08497)
 private val LightPink = Color(0xFFFFCAD4)
 
+private fun MediaPlayer.safeStopAndRelease() {
+    try { if (isPlaying) stop() } catch (_: Exception) {}
+    try { release() } catch (_: Exception) {}
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DigitsOnlyField(
@@ -648,19 +655,108 @@ fun FishDiaryApp(
     val timerState by timerViewModel.timerState.collectAsStateWithLifecycle()
     val displayMinutes = if (timerState.remainingTime > 0) timerState.remainingTime / 60 else timerState.minutes
     val displaySeconds = if (timerState.remainingTime > 0) timerState.remainingTime % 60 else timerState.seconds
+    val context = LocalContext.current
 
+    // Store MediaPlayer reference
+    var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+
+    // Play sound when dialog shows
+    LaunchedEffect(timerState.showCompletionDialog) {
+        if (timerState.showCompletionDialog) {
+            try {
+                // Release previous player if exists
+                mediaPlayer?.release()
+
+                // Try multiple possible paths and filenames
+                val possiblePaths = listOf(
+                    "themes/sounds/sound.mp3",
+                    "sounds/sound.mp3"
+                )
+
+                var player: MediaPlayer?
+                for (path in possiblePaths) {
+                    try {
+                        val assetFileDescriptor = context.assets.openFd(path)
+                        player = MediaPlayer().apply {
+                            setDataSource(
+                                assetFileDescriptor.fileDescriptor,
+                                assetFileDescriptor.startOffset,
+                                assetFileDescriptor.length
+                            )
+                            prepare()
+                            isLooping = true
+                        }
+                        assetFileDescriptor.close()
+                        mediaPlayer = player
+                        player.start()
+                        break // Successfully loaded and playing
+                    } catch (_: Exception) {
+                        // Try next path
+                        continue
+                    }
+                }
+            } catch (_: Exception) {
+                // Handle error - sound file might not be found
+                mediaPlayer = null
+            }
+        } else {
+            // Stop and release when dialog is dismissed
+            mediaPlayer?.apply {
+                if (isPlaying) {
+                    stop()
+                }
+                release()
+            }
+            mediaPlayer = null
+        }
+    }
+
+    // Cleanup MediaPlayer when composable is disposed
+    DisposableEffect(Unit) {
+        onDispose {
+            mediaPlayer?.apply {
+                if (isPlaying) {
+                    stop()
+                }
+                release()
+            }
+        }
+    }
+
+    // Show completion dialog when timer reaches 0
     if (timerState.showCompletionDialog) {
         AlertDialog(
-            onDismissRequest = { timerViewModel.dismissCompletionDialogAndClear() },
+            onDismissRequest = {
+                mediaPlayer?.apply {
+                    if (isPlaying) {
+                        stop()
+                    }
+                    release()
+                }
+                mediaPlayer = null
+                timerViewModel.dismissCompletionDialogAndClear()
+            },
             title = { Text("Time is up!") },
             confirmButton = {
-                Button(onClick = { timerViewModel.dismissCompletionDialogAndClear() }) { Text("OK") }
+                Button(onClick = {
+                    mediaPlayer?.apply {
+                        if (isPlaying) {
+                            stop()
+                        }
+                        release()
+                    }
+                    mediaPlayer = null
+                    timerViewModel.dismissCompletionDialogAndClear()
+                }) {
+                    Text("OK")
+                }
             }
         )
     }
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
+            // Timer bar at the top when running or paused
             if (timerState.remainingTime > 0) {
                 TimerTopBar(
                     minutes = displayMinutes,
@@ -677,6 +773,7 @@ fun FishDiaryApp(
                 modifier = Modifier.weight(1f),
                 startDestination = Routes.List.route
             ) {
+
                 composable(Routes.List.route) {
                     RecipesHomeScreen(
                         onRecipeClick = { id -> navController.navigate("detail/$id") },
@@ -704,6 +801,7 @@ fun FishDiaryApp(
                     listOf(navArgument("recipeId") { type = NavType.IntType })
                 ) { backStackEntry ->
                     val recipeId = backStackEntry.arguments?.getInt("recipeId") ?: 0
+
                     EditRecipeScreen(
                         onSaved = {
                             navController.navigate("detail/$recipeId") {
