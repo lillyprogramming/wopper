@@ -180,7 +180,12 @@ private val categoriesArr = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun UnitDropdown(unit: String, onUnitChange: (String) -> Unit, modifier: Modifier = Modifier) {
+private fun UnitDropdown(
+    unit: String,
+    onUnitChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    colors: androidx.compose.material3.TextFieldColors = woopperTextFieldColors()
+) {
     var expanded by remember { mutableStateOf(false) }
     ExposedDropdownMenuBox(
         expanded = expanded,
@@ -195,7 +200,7 @@ private fun UnitDropdown(unit: String, onUnitChange: (String) -> Unit, modifier:
             placeholder = { Text("Select") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
             modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth(),
-            colors = woopperTextFieldColors(),
+            colors = colors,
             shape = RoundedCornerShape(14.dp)
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
@@ -233,7 +238,6 @@ private fun WoopperInputCard(
         }
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditIngredientDialog(
@@ -246,40 +250,57 @@ private fun EditIngredientDialog(
     var name by remember { mutableStateOf(initial.name) }
     val nameErr = remember(name) { name.trim().isBlank() }
 
+    val dialogFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = Pink,
+        unfocusedBorderColor = Pink.copy(alpha = 0.85f),
+        cursorColor = Pink,
+        focusedLabelColor = Pink,
+        unfocusedLabelColor = Pink.copy(alpha = 0.9f),
+        errorBorderColor = Pink,
+        errorLabelColor = Pink,
+        errorCursorColor = Pink,
+        focusedContainerColor = Color.White,
+        unfocusedContainerColor = Color.White,
+        errorContainerColor = Color.White
+    )
+
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = Peach,
         title = { Text("Edit Ingredient", fontWeight = FontWeight.Black, color = Color(0xFF111827)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                WoopperFieldWrap(title = "Amount", required = false) {
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        OutlinedTextField(
-                            value = amount,
-                            onValueChange = { v ->
-                                amount = v.filter { it.isDigit() || it == ' ' || it == '/' || it == '.' || it == ',' }.take(20)
-                            },
-                            label = { Text("Amount") },
-                            modifier = Modifier.weight(1f),
-                            colors = woopperTextFieldColors()
-                        )
-                        Box(Modifier.weight(1f)) {
-                            UnitDropdown(unit = unit, onUnitChange = { unit = it })
-                        }
-                    }
-                }
-
-                WoopperFieldWrap(title = "Ingredient", required = true, highlight = nameErr) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        label = { Text("Name") },
-                        modifier = Modifier.fillMaxWidth(),
-                        isError = nameErr,
-                        supportingText = { if (nameErr) Text("Required", color = Pink) },
-                        colors = woopperTextFieldColors()
+                        value = amount,
+                        onValueChange = { v ->
+                            amount = v.filter { it.isDigit() || it == ' ' || it == '/' || it == '.' || it == ',' }.take(20)
+                        },
+                        label = { Text("Amount") },
+                        modifier = Modifier.weight(1f),
+                        colors = dialogFieldColors,
+                        shape = RoundedCornerShape(14.dp),
+                        singleLine = true
+                    )
+                    UnitDropdown(
+                        unit = unit,
+                        onUnitChange = { unit = it },
+                        modifier = Modifier.weight(1f),
+                        colors = dialogFieldColors
                     )
                 }
+
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Ingredient") },
+                    modifier = Modifier.fillMaxWidth(),
+                    isError = nameErr,
+                    supportingText = { if (nameErr) Text("Required", color = Pink) },
+                    colors = dialogFieldColors,
+                    shape = RoundedCornerShape(14.dp),
+                    singleLine = true
+                )
             }
         },
         confirmButton = {
@@ -312,36 +333,47 @@ private fun EditInstructionDialog(
     var timer by remember { mutableStateOf(initial.timer) }
     val textErr = remember(text) { text.trim().isBlank() }
 
+    val dialogFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = Pink,
+        unfocusedBorderColor = Pink.copy(alpha = 0.85f),
+        cursorColor = Pink,
+        focusedLabelColor = Pink,
+        unfocusedLabelColor = Pink.copy(alpha = 0.9f),
+        errorBorderColor = Pink,
+        errorLabelColor = Pink,
+        errorCursorColor = Pink,
+        focusedContainerColor = Color.White,
+        unfocusedContainerColor = Color.White,
+        errorContainerColor = Color.White
+    )
+
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = Peach,
         title = { Text("Edit Step", fontWeight = FontWeight.Black, color = Color(0xFF111827)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                WoopperFieldWrap(title = "Step", required = true, highlight = textErr) {
-                    OutlinedTextField(
-                        value = text,
-                        onValueChange = { text = it },
-                        label = { Text("Instruction") },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 2,
-                        isError = textErr,
-                        supportingText = { if (textErr) Text("Required", color = Pink) },
-                        colors = woopperTextFieldColors()
-                    )
-                }
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    label = { Text("Step") },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
+                    isError = textErr,
+                    supportingText = { if (textErr) Text("Required", color = Pink) },
+                    colors = dialogFieldColors,
+                    shape = RoundedCornerShape(14.dp)
+                )
 
-                WoopperFieldWrap(title = "Timer", required = false) {
-                    DigitsOnlyField(
-                        value = timer,
-                        onValueChange = { timer = it },
-                        label = { Text("Minutes (optional)") },
-                        modifier = Modifier.fillMaxWidth(),
-                        maxDigits = 3,
-                        min = 0,
-                        colors = woopperTextFieldColors()
-                    )
-                }
+                DigitsOnlyField(
+                    value = timer,
+                    onValueChange = { timer = it },
+                    label = { Text("Minutes (optional)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    maxDigits = 3,
+                    min = 0,
+                    colors = dialogFieldColors
+                )
             }
         },
         confirmButton = {
@@ -391,7 +423,7 @@ private fun IngredientsEditor(
                 shape = RoundedCornerShape(14.dp),
                 singleLine = true
             )
-            Box(Modifier.weight(1f)) { UnitDropdown(unit = unit, onUnitChange = { unit = it }) }
+            UnitDropdown(unit = unit, onUnitChange = { unit = it }, modifier = Modifier.weight(1f))
         }
 
         Spacer(Modifier.height(10.dp))
@@ -426,7 +458,7 @@ private fun IngredientsEditor(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = { onEditAt(idx) },
                     border = BorderStroke(1.dp, Pink),
-                    colors = CardDefaults.outlinedCardColors(containerColor = LightPink.copy(alpha = 0.20f)),
+                    colors = CardDefaults.outlinedCardColors(containerColor = Color(0xFFE8F4F5)),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Row(
@@ -517,7 +549,7 @@ private fun InstructionsEditor(
                     modifier = Modifier.fillMaxWidth(),
                     onClick = { onEditAt(idx) },
                     border = BorderStroke(1.dp, Pink),
-                    colors = CardDefaults.outlinedCardColors(containerColor = LightPink.copy(alpha = 0.20f)),
+                    colors = CardDefaults.outlinedCardColors(containerColor = Color(0xFFE8F4F5)),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -784,12 +816,12 @@ private fun CategoriesChips(categoriesCsv: String, modifier: Modifier = Modifier
 
     Column(modifier) {
         Text(title, style = androidx.compose.material3.MaterialTheme.typography.titleMedium, color = Color.Black)
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(10.dp))
 
         FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth()
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
         ) {
             categoriesList.forEach { cat ->
                 AssistChip(
@@ -927,8 +959,18 @@ fun RecipesHomeScreen(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
                     placeholder = { Text("Search recipes...", color = Color.Gray) },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", tint = Pink) },
-                    colors = woopperTextFieldColors(),
-                    singleLine = true
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Pink,
+                        unfocusedBorderColor = Pink.copy(alpha = 0.85f),
+                        cursorColor = Pink,
+                        focusedLabelColor = Pink,
+                        unfocusedLabelColor = Pink.copy(alpha = 0.9f),
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White,
+                        errorContainerColor = Color.White
+                    ),
+                    singleLine = true,
+                    shape = RoundedCornerShape(14.dp)
                 )
             }
 
@@ -1388,8 +1430,8 @@ fun RecipeDetails(
                 ) {
                     Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
                         FlowRow(
-                            horizontalArrangement = Arrangement.Center,
-                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
                             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
                         ) {
                             AssistChip(
@@ -1412,7 +1454,7 @@ fun RecipeDetails(
                             )
                         }
 
-                        Spacer(Modifier.height(10.dp))
+                        Spacer(Modifier.height(12.dp))
                         CategoriesChips(categoriesCsv = recipe.categories)
                         Spacer(Modifier.height(16.dp))
 
@@ -1425,7 +1467,6 @@ fun RecipeDetails(
 
                         Spacer(Modifier.height(16.dp))
 
-                        Text("Ingredients:", color = Color.Black, fontWeight = FontWeight.Medium)
                         recipe.ingredients.forEach { ing ->
                             val baseAmountStr = ing.amount?.trim().orEmpty()
                             val baseAmountNum = baseAmountStr.takeIf { it.isNotBlank() }?.let(::parseAmountToDouble)
@@ -1445,11 +1486,10 @@ fun RecipeDetails(
 
                         Spacer(Modifier.height(12.dp))
 
-                        Text("Instructions:", color = Color.Black, fontWeight = FontWeight.Medium)
                         recipe.instructions.sortedBy { it.stepNumber }.forEach { step ->
                             Row(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text("${step.stepNumber}. ${step.text}", modifier = Modifier.weight(1f), color = Color.Black)
@@ -1465,10 +1505,10 @@ fun RecipeDetails(
 
                         Spacer(Modifier.height(12.dp))
 
-                        Text("Notes:", color = Color.Black, fontWeight = FontWeight.Medium)
-                        Text(recipe.notes, color = Color.Black)
-
-                        Spacer(Modifier.height(20.dp))
+                        if (recipe.notes.isNotBlank()) {
+                            Text(recipe.notes, color = Color.Black)
+                            Spacer(Modifier.height(14.dp))
+                        }
 
                         WoopperPrimaryButton(
                             text = "Set Timer",
@@ -1779,11 +1819,11 @@ fun CreateRecipeScreen(
         snackbarHostState = snackbarHostState,
         bottomBar = {
             validationMessage?.let { msg ->
-                Surface(color = Peach, tonalElevation = 2.dp) {
+                Surface(color = LightPink.copy(alpha = 0.55f), tonalElevation = 2.dp) {
                     Text(
                         text = msg,
-                        color = Color(0xFF7C2D12),
-                        fontWeight = FontWeight.Bold,
+                        color = Pink,
+                        fontWeight = FontWeight.Black,
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
                         textAlign = TextAlign.Center
                     )
@@ -2043,13 +2083,13 @@ fun EditRecipeScreen(
         saveEnabled = ui.name.trim().isNotBlank() && ui.mealType.isNotBlank(),
         snackbarHostState = snackbarHostState,
         bottomBar = {
-            Surface(color = Peach, tonalElevation = 2.dp) {
+            Surface(color = LightPink.copy(alpha = 0.55f), tonalElevation = 2.dp) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     validationMessage?.let { msg ->
                         Text(
                             text = msg,
-                            color = Color(0xFF7C2D12),
-                            fontWeight = FontWeight.Bold,
+                            color = Pink,
+                            fontWeight = FontWeight.Black,
                             modifier = Modifier.fillMaxWidth(),
                             textAlign = TextAlign.Center
                         )
