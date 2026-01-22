@@ -1,21 +1,245 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <meta charset="utf-8">
-    <meta name="generator" content="GitLab Pages">
-    <title>Plain HTML site using GitLab Pages</title>
-    <link rel="stylesheet" href="style.css">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CCL 3 Documentation — wopper</title>
+    <link rel="stylesheet" href="style.css" />
   </head>
-  <body>
-    <h1>CCL 3 Documentation</h1>
 
-    <h2>wopper</h2>
-    <p>
-      An app for storing, choosing, and timing recipes.
-    </p>
-    <p>By: <b>Andras Lukats</b> and <b>Lilia Dimitrova</b></p>
-    <p>Link to app concept: <a href="https://www.canva.com/design/DAG-IFAz3dI/JqRDmxe7Z6ig_Bdi3rPu6g/edit?utm_content=DAG-IFAz3dI&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton">click here!</a></p>
-    <p>Link to app Figma prototype: <a href="https://www.figma.com/design/ziBLPJjH3FKjL8xJBJMMjP/wopper?node-id=6-10&t=5dKD8waxMmZwhLtA-1">click here!</a></p>
+  <body>
+    <header class="topbar">
+      <div class="topbar__inner">
+        <a class="brand" href="#top" aria-label="Go to top">
+          <span class="brand__logo">w</span>
+          <span class="brand__text">wopper</span>
+        </a>
+
+        <nav class="nav" aria-label="Page navigation">
+          <a class="nav__link" href="#concept">Concept</a>
+          <a class="nav__link" href="#development">Development</a>
+          <a class="nav__link" href="#usability">Usability</a>
+          <a class="nav__link" href="#reflection">Reflection</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="top" class="page">
+      <section class="hero">
+        <div class="hero__card">
+          <div class="hero__titleWrap" aria-label="wopper title">
+            <div class="hero__shadow hero__shadow--1">wopper</div>
+            <div class="hero__shadow hero__shadow--2">wopper</div>
+            <div class="hero__shadow hero__shadow--3">wopper</div>
+            <div class="hero__shadow hero__shadow--4">wopper</div>
+            <h1 class="hero__title">wopper</h1>
+          </div>
+
+          <p class="hero__subtitle">CCL 3 Documentation</p>
+
+          <p class="hero__desc">
+            An app for storing, choosing, and timing recipes.
+          </p>
+
+          <div class="hero__meta">
+            <div class="pill">
+              <span class="pill__label">By</span>
+              <span class="pill__value"><b>Andras Lukats</b> &nbsp;·&nbsp; <b>Lilia Dimitrova</b></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="concept" class="section">
+        <div class="section__head">
+          <h2 class="section__title">Concept</h2>
+          <p class="section__lead">
+            The original idea, goals, and prototype references.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3 class="card__title">Links</h3>
+          <p class="card__text">
+            App concept:
+            <a class="link" href="https://www.canva.com/design/DAG-IFAz3dI/JqRDmxe7Z6ig_Bdi3rPu6g/edit?utm_content=DAG-IFAz3dI&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton" target="_blank" rel="noreferrer">Canva</a>
+          </p>
+          <p class="card__text">
+            Figma prototype:
+            <a class="link" href="https://www.figma.com/design/ziBLPJjH3FKjL8xJBJMMjP/wopper?node-id=6-10&t=5dKD8waxMmZwhLtA-1" target="_blank" rel="noreferrer">Figma</a>
+          </p>
+
+          <div class="divider"></div>
+
+          <h3 class="card__title">Concept summary</h3>
+          <ul class="list">
+            <li><b>Problem:</b> recipes are spread across notes, screenshots, and links.</li>
+            <li><b>Goal:</b> keep recipes in one place and make cooking easier with timers.</li>
+            <li><b>Main flows:</b> browse → search/filter → open recipe → adjust servings → follow steps with timers.</li>
+            <li><b>Target users:</b> people who cook at home and want quick access to saved recipes.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="development" class="section">
+        <div class="section__head">
+          <h2 class="section__title">Development</h2>
+          <p class="section__lead">
+            What we built, how it works, and deliverables.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3 class="card__title">Implemented features</h3>
+          <ul class="list">
+            <li>Create, edit, and delete recipes (ingredients, steps, notes, image).</li>
+            <li>Browse recipes grouped by meal type.</li>
+            <li>Search by recipe name.</li>
+            <li>Filter by categories.</li>
+            <li>Pick a random recipe within a meal type.</li>
+            <li>Adjust servings and automatically scale ingredient amounts (when numeric).</li>
+            <li>Start a timer from a step, or set a manual timer.</li>
+          </ul>
+
+          <div class="divider"></div>
+
+          <h3 class="card__title">Code & APK</h3>
+          <p class="card__text">
+            Repository link:
+            <a class="link" href="REPLACE_WITH_YOUR_REPO_URL" target="_blank" rel="noreferrer">REPLACE_WITH_YOUR_REPO_URL</a>
+          </p>
+          <p class="card__text">
+            APK file:
+            <a class="link" href="wopper.apk" download>Download wopper.apk</a>
+            <span class="muted">(replace the filename if needed)</span>
+          </p>
+
+          <div class="divider"></div>
+
+          <h3 class="card__title">Database (SQLite)</h3>
+          <p class="card__text">
+            The app uses SQLite to store recipes, ingredients, and instructions.
+            Add your ERD image next to this page (for example: <code>erd.png</code>), then include it here:
+          </p>
+          <p class="card__text">
+            ERD:
+            <a class="link" href="erd.png" target="_blank" rel="noreferrer">Open erd.png</a>
+            <span class="muted">(add the file to your pages folder)</span>
+          </p>
+
+          <div class="divider"></div>
+
+          <h3 class="card__title">How the final app matches the concept</h3>
+          <ul class="list">
+            <li>Central recipe storage matches the “one place for recipes” goal.</li>
+            <li>Search & categories support fast retrieval while cooking.</li>
+            <li>Timers support step-by-step execution and reduce context switching.</li>
+            <li>Servings scaling supports flexible cooking for different group sizes.</li>
+          </ul>
+
+          <div class="divider"></div>
+
+          <h3 class="card__title">What could be improved</h3>
+          <ul class="list">
+            <li>Improve ingredient amount parsing to support more formats.</li>
+            <li>More robust category storage (e.g., normalized tables instead of CSV).</li>
+            <li>Optional backup/export of recipes.</li>
+            <li>Small onboarding hints for filters and timers.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="usability" class="section">
+        <div class="section__head">
+          <h2 class="section__title">Usability test</h2>
+          <p class="section__lead">
+            Plan, participants, results summary, key feedback, and updates made.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3 class="card__title">Test plan</h3>
+          <p class="card__text">
+            Link to usability test plan:
+            <a class="link" href="REPLACE_WITH_TEST_PLAN_URL" target="_blank" rel="noreferrer">REPLACE_WITH_TEST_PLAN_URL</a>
+          </p>
+
+          <p class="card__text"><b>Tasks:</b></p>
+          <ul class="list">
+            <li>Create a recipe with ingredients and steps.</li>
+            <li>Find a recipe using search and category filter.</li>
+            <li>Adjust servings and check ingredient scaling.</li>
+            <li>Start a timer from a step and clear it.</li>
+          </ul>
+
+          <div class="divider"></div>
+
+          <h3 class="card__title">Participants</h3>
+          <p class="card__text"><b>Number of test subjects:</b> REPLACE_NUMBER</p>
+          <p class="card__text"><b>Devices:</b> REPLACE_DEVICE_INFO</p>
+          <p class="card__text"><b>Session length:</b> REPLACE_DURATION</p>
+
+          <div class="divider"></div>
+
+          <h3 class="card__title">Results summary</h3>
+          <p class="card__text">
+            REPLACE_WITH_A_SHORT_SUMMARY_OF_RESULTS (what went well, what was confusing, overall impression).
+          </p>
+
+          <div class="divider"></div>
+
+          <h3 class="card__title">Most relevant feedback (excerpts)</h3>
+          <ul class="list">
+            <li>“REPLACE_WITH_QUOTE_1”</li>
+            <li>“REPLACE_WITH_QUOTE_2”</li>
+            <li>“REPLACE_WITH_QUOTE_3”</li>
+          </ul>
+
+          <div class="divider"></div>
+
+          <h3 class="card__title">Updates made after feedback</h3>
+          <p class="card__text muted">
+            If no changes were made, say it clearly and explain why.
+          </p>
+          <ul class="list">
+            <li>REPLACE_CHANGE_1</li>
+            <li>REPLACE_CHANGE_2</li>
+            <li>REPLACE_CHANGE_3</li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="reflection" class="section">
+        <div class="section__head">
+          <h2 class="section__title">Reflection</h2>
+          <p class="section__lead">
+            A reflection from each team member: challenges, contributions, and future work.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3 class="card__title">Andras Lukats</h3>
+          <p class="card__text"><b>Challenges:</b> REPLACE</p>
+          <p class="card__text"><b>Contributions:</b> REPLACE</p>
+          <p class="card__text"><b>What I learned:</b> REPLACE</p>
+          <p class="card__text"><b>Future improvements:</b> REPLACE</p>
+
+          <div class="divider"></div>
+
+          <h3 class="card__title">Lilia Dimitrova</h3>
+          <p class="card__text"><b>Challenges:</b> REPLACE</p>
+          <p class="card__text"><b>Contributions:</b> REPLACE</p>
+          <p class="card__text"><b>What I learned:</b> REPLACE</p>
+          <p class="card__text"><b>Future improvements:</b> REPLACE</p>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <div class="footer__inner">
+          <p class="footer__text">wopper — CCL 3 Project Documentation</p>
+          <a class="footer__link" href="#top">Back to top</a>
+        </div>
+      </footer>
+    </main>
   </body>
 </html>
-
