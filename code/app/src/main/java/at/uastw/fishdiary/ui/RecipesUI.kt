@@ -3,11 +3,13 @@ package at.uastw.fishdiary.ui
 import android.media.MediaPlayer
 import android.content.Context
 import android.net.Uri
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +29,8 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -74,6 +78,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -104,14 +109,26 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+
 
 private val Peach = Color(0xFFF7AF9D)
 private val Blue = Color(0xFFB0D0D3)
 private val Pink = Color(0xFFC08497)
 private val LightPink = Color(0xFFFFCAD4)
 
+private fun MediaPlayer.safeStopAndRelease() {
+    try { if (isPlaying) stop() } catch (_: Exception) {}
+    try { release() } catch (_: Exception) {}
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DigitsOnlyField(
@@ -181,7 +198,7 @@ private fun UnitDropdown(
     var expanded by remember { mutableStateOf(false) }
     ExposedDropdownMenuBox(
         expanded = expanded,
-        onExpandedChange = { !expanded },
+        onExpandedChange = { expanded = !expanded },
         modifier = modifier
     ) {
         OutlinedTextField(
@@ -208,6 +225,7 @@ private fun UnitDropdown(
 
 @Composable
 private fun WoopperInputCard(
+    title: String,
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
@@ -941,6 +959,17 @@ private fun WoopperPrimaryButton(text: String, onClick: () -> Unit, modifier: Mo
         colors = ButtonDefaults.buttonColors(containerColor = Blue, contentColor = Color.White)
     ) { Text(text, fontWeight = FontWeight.Medium) }
 }
+
+@Composable
+private fun WoopperSecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier,
+        border = BorderStroke(1.dp, Pink),
+        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Pink)
+    ) { Text(text, fontWeight = FontWeight.Medium) }
+}
+
 @Composable
 fun RecipesHomeScreen(
     recipesViewModel: RecipesViewModel = viewModel(factory = AppViewModelProvider.Factory),
@@ -950,6 +979,7 @@ fun RecipesHomeScreen(
     val recipes by recipesViewModel.recipesUiState.collectAsStateWithLifecycle()
     var selectedCategories by remember { mutableStateOf<Set<String>>(emptySet()) }
     var searchQuery by remember { mutableStateOf("") }
+    val collapsedMealTypes = remember { mutableStateMapOf<String, Boolean>() }
 
     val filteredRecipes = remember(recipes, selectedCategories, searchQuery) {
         var filtered = recipes
@@ -1016,11 +1046,16 @@ fun RecipesHomeScreen(
             mealTypeArr.forEach { mealType ->
                 val mealTypeRecipes = recipesByMealType[mealType] ?: emptyList()
                 if (mealTypeRecipes.isNotEmpty()) {
+                    val collapsed = collapsedMealTypes[mealType] ?: false
                     item {
                         MealTypeSection(
                             mealType = mealType,
                             recipes = mealTypeRecipes,
-                            onRecipeClick = onRecipeClick
+                            onRecipeClick = onRecipeClick,
+                            collapsed = collapsed,
+                            onToggleCollapsed = {
+                                collapsedMealTypes[mealType] = !(collapsedMealTypes[mealType] ?: false)
+                            }
                         )
                     }
                 }
@@ -1098,7 +1133,9 @@ fun MealTypeSection(
     mealType: String,
     recipes: List<Recipe>,
     onRecipeClick: (Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    collapsed: Boolean,
+    onToggleCollapsed: () -> Unit
 ) {
     Card(
         modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp),
@@ -1108,31 +1145,66 @@ fun MealTypeSection(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.fillMaxWidth().padding(16.dp)
         ) {
-            Text(mealType, fontWeight = FontWeight.Bold, fontSize = 28.sp, color = Color(0xFF111827))
-            Spacer(Modifier.height(8.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable { onToggleCollapsed() }
+                    .padding(vertical = 6.dp, horizontal = 6.dp)
+            ) {
+                Text(
+                    mealType,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 28.sp,
+                    color = Color(0xFF111827),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .fillMaxWidth()
+                        .padding(horizontal = 44.dp)
+                )
+                Icon(
+                    imageVector = if (collapsed) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
+                    contentDescription = if (collapsed) "Expand" else "Collapse",
+                    tint = Color(0xFF111827),
+                    modifier = Modifier.align(Alignment.CenterEnd)
+                )
+            }
 
-            WoopperPrimaryButton(
-                text = "Pick a Random one",
-                onClick = { onRecipeClick(recipes.random().id) },
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
-            )
+            AnimatedVisibility(
+                visible = !collapsed,
+                enter = expandVertically(animationSpec = tween(220)) + fadeIn(animationSpec = tween(220)),
+                exit = shrinkVertically(animationSpec = tween(180)) + fadeOut(animationSpec = tween(180))
+            ) {
+                Column {
+                    Spacer(Modifier.height(8.dp))
 
-            recipes.chunked(2).forEach { rowRecipes ->
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    rowRecipes.forEach { recipe ->
-                        Box(modifier = Modifier.weight(1f)) {
-                            WoopperRecipeCard(recipe = recipe, onCardClick = { onRecipeClick(recipe.id) })
+                    WoopperPrimaryButton(
+                        text = "Pick a Random one",
+                        onClick = { onRecipeClick(recipes.random().id) },
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                    )
+
+                    recipes.chunked(2).forEach { rowRecipes ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            rowRecipes.forEach { recipe ->
+                                Box(modifier = Modifier.weight(1f)) {
+                                    WoopperRecipeCard(recipe = recipe, onCardClick = { onRecipeClick(recipe.id) })
+                                }
+                            }
+                            if (rowRecipes.size == 1) Spacer(modifier = Modifier.weight(1f))
                         }
                     }
-                    if (rowRecipes.size == 1) Spacer(modifier = Modifier.weight(1f))
                 }
             }
         }
     }
 }
+
+
 
 @Composable
 fun WoopperRecipeCard(recipe: Recipe, onCardClick: () -> Unit, modifier: Modifier = Modifier) {
@@ -1676,6 +1748,75 @@ private fun WoopperFormScaffold(
     ) { padding -> content(padding) }
 }
 
+
+@Composable
+private fun WoopperSectionCard(
+    title: String,
+    modifier: Modifier = Modifier,
+    trailing: (@Composable () -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, Pink),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = title,
+                    style = androidx.compose.material3.MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF111827),
+                    modifier = Modifier.weight(1f)
+                )
+                trailing?.invoke()
+            }
+            content()
+        }
+    }
+}
+
+@Composable
+private fun WoopperQuickMetaRow(
+    totalTime: String,
+    onTotalTime: (String) -> Unit,
+    difficulty: String,
+    onDifficulty: (String) -> Unit,
+    servingSize: String,
+    onServingSize: (String) -> Unit
+) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        DigitsOnlyField(
+            value = totalTime,
+            onValueChange = onTotalTime,
+            label = { Text("Total (min)") },
+            modifier = Modifier.weight(1f),
+            maxDigits = 4,
+            min = 0
+        )
+        DigitsOnlyField(
+            value = difficulty,
+            onValueChange = onDifficulty,
+            label = { Text("Diff 1–5") },
+            modifier = Modifier.weight(1f),
+            maxDigits = 1,
+            min = 1,
+            max = 5
+        )
+        DigitsOnlyField(
+            value = servingSize,
+            onValueChange = onServingSize,
+            label = { Text("Servings") },
+            modifier = Modifier.weight(1f),
+            maxDigits = 3,
+            min = 1
+        )
+    }
+}
+
 @Composable
 fun CreateRecipeScreen(
     addRecipeViewModel: AddRecipeViewModel = viewModel(factory = AppViewModelProvider.Factory),
@@ -1807,7 +1948,7 @@ fun CreateRecipeScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                WoopperInputCard() {
+                WoopperInputCard(title = "") {
                     OutlinedTextField(
                         value = name,
                         onValueChange = {
@@ -1873,7 +2014,7 @@ fun CreateRecipeScreen(
             }
 
             item {
-                WoopperInputCard() {
+                WoopperInputCard(title = "Ingredients") {
                     IngredientsEditor(
                         ingredients = ingredients,
                         onAdd = { ingredients.add(it) },
@@ -1885,7 +2026,7 @@ fun CreateRecipeScreen(
             }
 
             item {
-                WoopperInputCard() {
+                WoopperInputCard(title = "Steps") {
                     InstructionsEditor(
                         instructions = instructions,
                         onAdd = { instructions.add(it) },
@@ -1897,7 +2038,7 @@ fun CreateRecipeScreen(
             }
 
             item {
-                WoopperInputCard() {
+                WoopperInputCard(title = "") {
                     OutlinedTextField(
                         value = notes,
                         onValueChange = { notes = it },
@@ -1911,7 +2052,7 @@ fun CreateRecipeScreen(
             }
 
             item {
-                WoopperInputCard() {
+                WoopperInputCard(title = "") {
                     ImagePickerField(
                         existingImagePath = null,
                         pickedImageUri = pickedImageUri,
@@ -2098,7 +2239,7 @@ fun EditRecipeScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item {
-                WoopperInputCard() {
+                WoopperInputCard(title = "") {
                     OutlinedTextField(
                         value = ui.name,
                         onValueChange = {
@@ -2164,7 +2305,7 @@ fun EditRecipeScreen(
             }
 
             item {
-                WoopperInputCard() {
+                WoopperInputCard(title = "Ingredients") {
                     IngredientsEditor(
                         ingredients = ingredients,
                         onAdd = { ingredients.add(it) },
@@ -2176,7 +2317,7 @@ fun EditRecipeScreen(
             }
 
             item {
-                WoopperInputCard() {
+                WoopperInputCard(title = "Steps") {
                     InstructionsEditor(
                         instructions = instructions,
                         onAdd = { instructions.add(it) },
@@ -2188,7 +2329,7 @@ fun EditRecipeScreen(
             }
 
             item {
-                WoopperInputCard() {
+                WoopperInputCard(title = "") {
                     OutlinedTextField(
                         value = ui.notes,
                         onValueChange = viewModel::updateNotes,
@@ -2202,7 +2343,7 @@ fun EditRecipeScreen(
             }
 
             item {
-                WoopperInputCard() {
+                WoopperInputCard(title = "") {
                     ImagePickerField(
                         existingImagePath = ui.imagePath,
                         pickedImageUri = pickedImageUri,
