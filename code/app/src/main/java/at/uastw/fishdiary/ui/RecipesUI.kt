@@ -3,12 +3,13 @@ package at.uastw.fishdiary.ui
 import android.media.MediaPlayer
 import android.content.Context
 import android.net.Uri
-import androidx.activity.compose.R
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -77,6 +78,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -110,6 +112,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+
 
 private val Peach = Color(0xFFF7AF9D)
 private val Blue = Color(0xFFB0D0D3)
@@ -970,6 +979,7 @@ fun RecipesHomeScreen(
     val recipes by recipesViewModel.recipesUiState.collectAsStateWithLifecycle()
     var selectedCategories by remember { mutableStateOf<Set<String>>(emptySet()) }
     var searchQuery by remember { mutableStateOf("") }
+    val collapsedMealTypes = remember { mutableStateMapOf<String, Boolean>() }
 
     val filteredRecipes = remember(recipes, selectedCategories, searchQuery) {
         var filtered = recipes
@@ -1036,11 +1046,16 @@ fun RecipesHomeScreen(
             mealTypeArr.forEach { mealType ->
                 val mealTypeRecipes = recipesByMealType[mealType] ?: emptyList()
                 if (mealTypeRecipes.isNotEmpty()) {
+                    val collapsed = collapsedMealTypes[mealType] ?: false
                     item {
                         MealTypeSection(
                             mealType = mealType,
                             recipes = mealTypeRecipes,
-                            onRecipeClick = onRecipeClick
+                            onRecipeClick = onRecipeClick,
+                            collapsed = collapsed,
+                            onToggleCollapsed = {
+                                collapsedMealTypes[mealType] = !(collapsedMealTypes[mealType] ?: false)
+                            }
                         )
                     }
                 }
@@ -1118,7 +1133,9 @@ fun MealTypeSection(
     mealType: String,
     recipes: List<Recipe>,
     onRecipeClick: (Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    collapsed: Boolean,
+    onToggleCollapsed: () -> Unit
 ) {
     Card(
         modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp),
@@ -1128,31 +1145,66 @@ fun MealTypeSection(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.fillMaxWidth().padding(16.dp)
         ) {
-            Text(mealType, fontWeight = FontWeight.Bold, fontSize = 28.sp, color = Color(0xFF111827))
-            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable { onToggleCollapsed() }
+                    .padding(vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    mealType,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 28.sp,
+                    color = Color(0xFF111827),
+                    modifier = Modifier.weight(1f)
+                )
+                Icon(
+                    imageVector = if (collapsed) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
+                    contentDescription = if (collapsed) "Expand" else "Collapse",
+                    tint = Color(0xFF111827)
+                )
+            }
 
-            WoopperPrimaryButton(
-                text = "Pick a Random one",
-                onClick = { onRecipeClick(recipes.random().id) },
-                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
-            )
+            AnimatedVisibility(
+                visible = !collapsed,
+                enter = expandVertically(animationSpec = tween(220)) + fadeIn(animationSpec = tween(220)),
+                exit = shrinkVertically(animationSpec = tween(180)) + fadeOut(animationSpec = tween(180))
+            ) {
+                Column {
+                    Spacer(Modifier.height(8.dp))
 
-            recipes.chunked(2).forEach { rowRecipes ->
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    rowRecipes.forEach { recipe ->
-                        Box(modifier = Modifier.weight(1f)) {
-                            WoopperRecipeCard(recipe = recipe, onCardClick = { onRecipeClick(recipe.id) })
+                    WoopperPrimaryButton(
+                        text = "Pick a Random one",
+                        onClick = { onRecipeClick(recipes.random().id) },
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                    )
+
+                    recipes.chunked(2).forEach { rowRecipes ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            rowRecipes.forEach { recipe ->
+                                Box(modifier = Modifier.weight(1f)) {
+                                    WoopperRecipeCard(
+                                        recipe = recipe,
+                                        onCardClick = { onRecipeClick(recipe.id) }
+                                    )
+                                }
+                            }
+                            if (rowRecipes.size == 1) Spacer(modifier = Modifier.weight(1f))
                         }
                     }
-                    if (rowRecipes.size == 1) Spacer(modifier = Modifier.weight(1f))
                 }
             }
         }
     }
 }
+
+
 
 @Composable
 fun WoopperRecipeCard(recipe: Recipe, onCardClick: () -> Unit, modifier: Modifier = Modifier) {
