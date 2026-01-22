@@ -1,4 +1,4 @@
-package at.uastw.fishdiary.ui.theme
+package at.uastw.wopper.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

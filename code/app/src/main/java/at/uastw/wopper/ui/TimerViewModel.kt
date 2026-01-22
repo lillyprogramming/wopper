@@ -1,4 +1,4 @@
-package at.uastw.fishdiary.ui
+package at.uastw.wopper.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

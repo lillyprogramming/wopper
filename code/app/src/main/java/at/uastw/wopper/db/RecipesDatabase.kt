@@ -1,4 +1,4 @@
-package at.uastw.fishdiary.db
+package at.uastw.wopper.db
 
 import android.content.Context
 import androidx.room.Database

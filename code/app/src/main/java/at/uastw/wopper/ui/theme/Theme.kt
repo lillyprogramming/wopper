@@ -1,4 +1,4 @@
-package at.uastw.fishdiary.ui.theme
+package at.uastw.wopper.ui.theme
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
@@ -21,7 +21,7 @@ private val wopperColorScheme = lightColorScheme(
 )
 
 @Composable
-fun FishDiaryTheme(
+fun WopperTheme(
     content: @Composable () -> Unit
 ) {
     MaterialTheme(

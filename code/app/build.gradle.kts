@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "at.uastw.fishdiary"
+    namespace = "at.uastw.wopper"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "at.uastw.fishdiary"
+        applicationId = "at.uastw.wopper"
         minSdk = 26
         targetSdk = 36
         versionCode = 1

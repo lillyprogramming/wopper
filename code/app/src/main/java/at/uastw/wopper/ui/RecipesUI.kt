@@ -1,9 +1,8 @@
-package at.uastw.fishdiary.ui
+package at.uastw.wopper.ui
 
 import android.media.MediaPlayer
 import android.content.Context
 import android.net.Uri
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -29,8 +28,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -101,15 +98,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import at.uastw.fishdiary.data.Ingredient
-import at.uastw.fishdiary.data.Instruction
-import at.uastw.fishdiary.data.Recipe
+import at.uastw.wopper.data.Ingredient
+import at.uastw.wopper.data.Instruction
+import at.uastw.wopper.data.Recipe
 import coil.compose.AsyncImage
 import java.io.File
 import java.io.FileOutputStream
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import androidx.compose.animation.AnimatedVisibility
@@ -657,7 +653,7 @@ private fun CategoriesMultiDropdown(
 }
 
 @Composable
-fun FishDiaryApp(
+fun WopperApp(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
     timerViewModel: TimerViewModel = viewModel(factory = AppViewModelProvider.Factory)

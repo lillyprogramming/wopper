@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "FishDiary"
+rootProject.name = "wopper"
 include(":app")
  

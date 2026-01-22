@@ -1,4 +1,4 @@
-package at.uastw.fishdiary.db
+package at.uastw.wopper.db
 
 import androidx.room.Entity
 import androidx.room.ForeignKey

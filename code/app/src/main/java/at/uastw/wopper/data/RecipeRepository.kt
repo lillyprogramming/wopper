@@ -1,6 +1,6 @@
-package at.uastw.fishdiary.data
+package at.uastw.wopper.data
 
-import at.uastw.fishdiary.db.*
+import at.uastw.wopper.db.*
 import kotlinx.coroutines.flow.map
 
 class RecipeRepository(private val recipesDao: RecipesDao) {

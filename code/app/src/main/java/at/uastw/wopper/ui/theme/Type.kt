@@ -1,4 +1,4 @@
-package at.uastw.fishdiary.ui.theme
+package at.uastw.wopper.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

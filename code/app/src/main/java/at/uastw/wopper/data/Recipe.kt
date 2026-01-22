@@ -1,4 +1,4 @@
-package at.uastw.fishdiary.data
+package at.uastw.wopper.data
 
 data class Recipe(
     val id: Int = 0,

@@ -1,4 +1,4 @@
-package at.uastw.fishdiary
+package at.uastw.wopper
 
 import org.junit.Test
 

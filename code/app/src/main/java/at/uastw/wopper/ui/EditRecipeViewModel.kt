@@ -1,11 +1,11 @@
-package at.uastw.fishdiary.ui
+package at.uastw.wopper.ui
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import at.uastw.fishdiary.data.Ingredient
-import at.uastw.fishdiary.data.Instruction
-import at.uastw.fishdiary.data.RecipeRepository
+import at.uastw.wopper.data.Ingredient
+import at.uastw.wopper.data.Instruction
+import at.uastw.wopper.data.RecipeRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
