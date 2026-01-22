@@ -3,7 +3,6 @@ package at.uastw.fishdiary.ui
 import android.media.MediaPlayer
 import android.content.Context
 import android.net.Uri
-import androidx.activity.compose.R
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -29,8 +28,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.relocation.BringIntoViewRequester
-import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -109,7 +106,6 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.Locale
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -119,10 +115,7 @@ private val Pink = Color(0xFFC08497)
 private val ServingCyan = Color(0xFFB0D0D3)
 private val LightPink = Color(0xFFFFCAD4)
 
-private fun MediaPlayer.safeStopAndRelease() {
-    try { if (isPlaying) stop() } catch (_: Exception) {}
-    try { release() } catch (_: Exception) {}
-}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DigitsOnlyField(
@@ -959,15 +952,6 @@ private fun WoopperPrimaryButton(
     ) { Text(text, fontWeight = FontWeight.Medium) }
 }
 
-@Composable
-private fun WoopperSecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = modifier,
-        border = BorderStroke(1.dp, Pink),
-        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Pink)
-    ) { Text(text, fontWeight = FontWeight.Medium) }
-}
 
 @Composable
 fun RecipesHomeScreen(
@@ -1176,12 +1160,7 @@ fun WoopperRecipeCard(recipe: Recipe, onCardClick: () -> Unit, modifier: Modifie
                     AsyncImage(
                         model = recipe.imagePath,
                         contentDescription = recipe.name,
-                        modifier = Modifier.fillMaxSize().clip(
-                            androidx.compose.foundation.shape.RoundedCornerShape(
-                                topStart = 12.dp,
-                                topEnd = 12.dp
-                            )
-                        ),
+                        modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
                 } else {
@@ -1764,73 +1743,8 @@ private fun WoopperFormScaffold(
 }
 
 
-@Composable
-private fun WoopperSectionCard(
-    title: String,
-    modifier: Modifier = Modifier,
-    trailing: (@Composable () -> Unit)? = null,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, Pink),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = title,
-                    style = androidx.compose.material3.MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF111827),
-                    modifier = Modifier.weight(1f)
-                )
-                trailing?.invoke()
-            }
-            content()
-        }
-    }
-}
 
-@Composable
-private fun WoopperQuickMetaRow(
-    totalTime: String,
-    onTotalTime: (String) -> Unit,
-    difficulty: String,
-    onDifficulty: (String) -> Unit,
-    servingSize: String,
-    onServingSize: (String) -> Unit
-) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        DigitsOnlyField(
-            value = totalTime,
-            onValueChange = onTotalTime,
-            label = { Text("Total (min)") },
-            modifier = Modifier.weight(1f),
-            maxDigits = 4,
-            min = 0
-        )
-        DigitsOnlyField(
-            value = difficulty,
-            onValueChange = onDifficulty,
-            label = { Text("Diff 1–5") },
-            modifier = Modifier.weight(1f),
-            maxDigits = 1,
-            min = 1,
-            max = 5
-        )
-        DigitsOnlyField(
-            value = servingSize,
-            onValueChange = onServingSize,
-            label = { Text("Servings") },
-            modifier = Modifier.weight(1f),
-            maxDigits = 3,
-            min = 1
-        )
-    }
-}
+
 
 @Composable
 fun CreateRecipeScreen(
