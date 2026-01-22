@@ -1145,26 +1145,29 @@ fun MealTypeSection(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.fillMaxWidth().padding(16.dp)
         ) {
-            Row(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
                     .clickable { onToggleCollapsed() }
-                    .padding(vertical = 4.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .padding(vertical = 6.dp, horizontal = 6.dp)
             ) {
                 Text(
                     mealType,
                     fontWeight = FontWeight.Bold,
                     fontSize = 28.sp,
                     color = Color(0xFF111827),
-                    modifier = Modifier.weight(1f)
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .fillMaxWidth()
+                        .padding(horizontal = 44.dp)
                 )
                 Icon(
                     imageVector = if (collapsed) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp,
                     contentDescription = if (collapsed) "Expand" else "Collapse",
-                    tint = Color(0xFF111827)
+                    tint = Color(0xFF111827),
+                    modifier = Modifier.align(Alignment.CenterEnd)
                 )
             }
 
@@ -1189,10 +1192,7 @@ fun MealTypeSection(
                         ) {
                             rowRecipes.forEach { recipe ->
                                 Box(modifier = Modifier.weight(1f)) {
-                                    WoopperRecipeCard(
-                                        recipe = recipe,
-                                        onCardClick = { onRecipeClick(recipe.id) }
-                                    )
+                                    WoopperRecipeCard(recipe = recipe, onCardClick = { onRecipeClick(recipe.id) })
                                 }
                             }
                             if (rowRecipes.size == 1) Spacer(modifier = Modifier.weight(1f))
