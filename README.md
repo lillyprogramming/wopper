@@ -1,4 +1,4 @@
-Example plain HTML site using GitLab Pages.
+Link to GitLab Pages: https://ccl3-ws2025-6879b0.pages.nwt.fhstp.ac.at/
 
 Learn more about GitLab Pages at https://pages.gitlab.io and the official
 documentation https://docs.gitlab.com/ce/user/project/pages/.
