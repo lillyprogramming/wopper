@@ -115,6 +115,7 @@ import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
+import at.uastw.wopper.ui.theme.DarkPink
 
 
 private val Peach = Color(0xFFF7AF9D)
@@ -170,10 +171,10 @@ enum class Routes(val route: String) {
 data class IngredientDraft(val amount: String = "", val unit: String = "", val name: String = "")
 data class InstructionDraft(val text: String = "", val timer: String = "")
 
-private val unitArr = listOf("g", "kg", "ml", "l", "tbsp", "tsp", "cup", "pcs", "pinch")
+private val unitArr = listOf("g", "kg", "ml", "l", "tbsp", "tsp", "cup", "pieces", "pinch")
 
 private val mealTypeArr = listOf(
-    "Breakfast", "Brunch", "Lunch", "Dinner", "Dessert", "Drinks", "Salads", "Side Dishes", "Soups", "Snacks", "Sauces"
+    "Breakfast", "Main Dish", "Dessert", "Drink", "Salad", "Side Dish", "Soup", "Snack", "Sauce"
 )
 
 private val categoriesArr = listOf(
@@ -444,17 +445,31 @@ private fun IngredientsEditor(
 
         Spacer(Modifier.height(10.dp))
 
-
-        Button(
-            onClick = {
-                if (name.isBlank()) return@Button
-                onAdd(IngredientDraft(amount = amount.trim(), unit = unit.trim(), name = name.trim()))
-                amount = ""; unit = ""; name = ""
-            },
-            modifier = Modifier.fillMaxWidth().height(48.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Blue, contentColor = Color.White),
-            shape = RoundedCornerShape(14.dp)
-        ) { Text("Add Ingredient", fontWeight = FontWeight.Bold) }
+        val hasText = name.isNotBlank()
+        if (hasText) {
+            Button(
+                onClick = {
+                    if (name.isBlank()) return@Button
+                    onAdd(IngredientDraft(amount = amount.trim(), unit = unit.trim(), name = name.trim()))
+                    amount = ""; unit = ""; name = ""
+                },
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Blue, contentColor = Color.White),
+                shape = RoundedCornerShape(14.dp)
+            ) { Text("Add Ingredient", fontWeight = FontWeight.Bold) }
+        } else {
+            OutlinedButton(
+                onClick = {
+                    if (name.isBlank()) return@OutlinedButton
+                    onAdd(IngredientDraft(amount = amount.trim(), unit = unit.trim(), name = name.trim()))
+                    amount = ""; unit = ""; name = ""
+                },
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                border = BorderStroke(1.dp, Pink),
+                colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Pink),
+                shape = RoundedCornerShape(14.dp)
+            ) { Text("Add Ingredient", fontWeight = FontWeight.Bold) }
+        }
 
         if (ingredients.isNotEmpty()) {
             Spacer(Modifier.height(12.dp))
@@ -535,16 +550,31 @@ private fun InstructionsEditor(
 
         Spacer(Modifier.height(10.dp))
 
-        Button(
-            onClick = {
-                if (text.isBlank()) return@Button
-                onAdd(InstructionDraft(text = text.trim(), timer = timer.trim()))
-                text = ""; timer = ""
-            },
-            modifier = Modifier.fillMaxWidth().height(48.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Blue, contentColor = Color.White),
-            shape = RoundedCornerShape(14.dp)
-        ) { Text("Add Step", fontWeight = FontWeight.Bold) }
+        val hasText = text.isNotBlank()
+        if (hasText) {
+            Button(
+                onClick = {
+                    if (text.isBlank()) return@Button
+                    onAdd(InstructionDraft(text = text.trim(), timer = timer.trim()))
+                    text = ""; timer = ""
+                },
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Blue, contentColor = Color.White),
+                shape = RoundedCornerShape(14.dp)
+            ) { Text("Add Step", fontWeight = FontWeight.Bold) }
+        } else {
+            OutlinedButton(
+                onClick = {
+                    if (text.isBlank()) return@OutlinedButton
+                    onAdd(InstructionDraft(text = text.trim(), timer = timer.trim()))
+                    text = ""; timer = ""
+                },
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                border = BorderStroke(1.dp, Pink),
+                colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Pink),
+                shape = RoundedCornerShape(14.dp)
+            ) { Text("Add Step", fontWeight = FontWeight.Bold) }
+        }
 
         if (instructions.isNotEmpty()) {
             Spacer(Modifier.height(12.dp))
@@ -859,24 +889,24 @@ fun ImagePickerField(
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Button(
                 onClick = {
-                    pickImageLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
-                },
-                modifier = Modifier.weight(1f).height(46.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Blue, contentColor = Color.White),
-                shape = RoundedCornerShape(14.dp)
-            ) { Text(if (pickedImageUri == null) "Pick Image" else "Change", fontWeight = FontWeight.Bold) }
-
-            OutlinedButton(
-                onClick = {
                     onPick(null)
                     onRemoveExisting?.invoke()
                 },
                 enabled = pickedImageUri != null || (existingImagePath != null && onRemoveExisting != null),
                 modifier = Modifier.weight(1f).height(46.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = DarkPink, contentColor = Color.White),
+                shape = RoundedCornerShape(14.dp)
+            ) { Text("Remove", fontWeight = FontWeight.Bold) }
+
+            OutlinedButton(
+                onClick = {
+                    pickImageLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                },
+                modifier = Modifier.weight(1f).height(46.dp),
                 border = BorderStroke(1.dp, Pink),
                 colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Pink),
                 shape = RoundedCornerShape(14.dp)
-            ) { Text("Remove", fontWeight = FontWeight.Bold) }
+            ) { Text(if (pickedImageUri == null) "Pick Image" else "Change", fontWeight = FontWeight.Bold) }
         }
 
         val previewModel = when {
