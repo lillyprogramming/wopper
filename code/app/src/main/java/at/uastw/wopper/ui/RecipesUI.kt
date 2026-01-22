@@ -34,6 +34,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -119,12 +120,10 @@ import androidx.compose.animation.shrinkVertically
 private val Peach = Color(0xFFF7AF9D)
 private val Blue = Color(0xFFB0D0D3)
 private val Pink = Color(0xFFC08497)
+private val ServingCyan = Color(0xFFB0D0D3)
 private val LightPink = Color(0xFFFFCAD4)
 
-private fun MediaPlayer.safeStopAndRelease() {
-    try { if (isPlaying) stop() } catch (_: Exception) {}
-    try { release() } catch (_: Exception) {}
-}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DigitsOnlyField(
@@ -308,19 +307,19 @@ private fun EditIngredientDialog(
             }
         },
         confirmButton = {
-            Button(
+            OutlinedButton(
                 onClick = {
-                    if (name.trim().isBlank()) return@Button
+                    if (name.trim().isBlank()) return@OutlinedButton
                     onSave(IngredientDraft(amount.trim(), unit.trim(), name.trim()))
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = Blue, contentColor = Color.White)
+                border = BorderStroke(1.dp, Pink),
+                colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Pink)
             ) { Text("Save", fontWeight = FontWeight.Bold) }
         },
         dismissButton = {
-            OutlinedButton(
+            Button(
                 onClick = onDismiss,
-                border = BorderStroke(1.dp, Pink),
-                colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Pink)
+                colors = ButtonDefaults.buttonColors(containerColor = Pink, contentColor = Color.White)
             ) { Text("Cancel", fontWeight = FontWeight.Bold) }
         }
     )
@@ -383,19 +382,19 @@ private fun EditInstructionDialog(
             }
         },
         confirmButton = {
-            Button(
+            OutlinedButton(
                 onClick = {
-                    if (text.trim().isBlank()) return@Button
+                    if (text.trim().isBlank()) return@OutlinedButton
                     onSave(InstructionDraft(text.trim(), timer.trim()))
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = Blue, contentColor = Color.White)
+                border = BorderStroke(1.dp, Pink),
+                colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Pink)
             ) { Text("Save", fontWeight = FontWeight.Bold) }
         },
         dismissButton = {
-            OutlinedButton(
+            Button(
                 onClick = onDismiss,
-                border = BorderStroke(1.dp, Pink),
-                colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Pink)
+                colors = ButtonDefaults.buttonColors(containerColor = Pink, contentColor = Color.White)
             ) { Text("Cancel", fontWeight = FontWeight.Bold) }
         }
     )
@@ -947,24 +946,21 @@ private fun woopperTextFieldColors() = OutlinedTextFieldDefaults.colors(
     errorContainerColor = LightPink.copy(alpha = 0.25f)
 )
 @Composable
-private fun WoopperPrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
+private fun WoopperPrimaryButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    contentColor: Color = Color.White
+) {
     Button(
         onClick = onClick,
         enabled = enabled,
         modifier = modifier,
-        colors = ButtonDefaults.buttonColors(containerColor = Blue, contentColor = Color.White)
+        colors = ButtonDefaults.buttonColors(containerColor = Blue, contentColor = contentColor)
     ) { Text(text, fontWeight = FontWeight.Medium) }
 }
 
-@Composable
-private fun WoopperSecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    OutlinedButton(
-        onClick = onClick,
-        modifier = modifier,
-        border = BorderStroke(1.dp, Pink),
-        colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Pink)
-    ) { Text(text, fontWeight = FontWeight.Medium) }
-}
 
 @Composable
 fun RecipesHomeScreen(
@@ -1216,12 +1212,7 @@ fun WoopperRecipeCard(recipe: Recipe, onCardClick: () -> Unit, modifier: Modifie
                     AsyncImage(
                         model = recipe.imagePath,
                         contentDescription = recipe.name,
-                        modifier = Modifier.fillMaxSize().clip(
-                            androidx.compose.foundation.shape.RoundedCornerShape(
-                                topStart = 12.dp,
-                                topEnd = 12.dp
-                            )
-                        ),
+                        modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
                 } else {
@@ -1385,22 +1376,70 @@ private fun ServingsAdjuster(
     Row(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalArrangement = Arrangement.spacedBy(1.dp)
     ) {
         Text("Servings:", color = Color.Black, fontWeight = FontWeight.Medium)
 
-        AssistChip(
-            onClick = { open = true },
-            label = { Text(desiredServings.toString(), color = Color.Black, fontWeight = FontWeight.Bold) },
-            colors = AssistChipDefaults.assistChipColors(containerColor = Peach, labelColor = Color.Black),
-            border = BorderStroke(1.dp, Pink)
-        )
+        IconButton(
+            onClick = { onDesiredChange((desiredServings - 1).coerceIn(1, 999)) }
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .background(ServingCyan, RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Remove,
+                    contentDescription = "Decrease servings",
+                    tint = Pink,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+
+        Box(
+            modifier = Modifier
+                .height(28.dp)
+                .clickable {
+                    input = desiredServings.toString()
+                    open = true
+                }
+                .background(ServingCyan, RoundedCornerShape(8.dp))
+                .padding(horizontal = 12.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                desiredServings.toString(),
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp
+            )
+        }
+
+        IconButton(
+            onClick = { onDesiredChange((desiredServings + 1).coerceIn(1, 999)) }
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(28.dp)
+                    .background(ServingCyan, RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Add,
+                    contentDescription = "Increase servings",
+                    tint = Pink,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
 
         if (desiredServings != baseServings) {
             Spacer(Modifier.weight(1f))
             Button(
                 onClick = { onDesiredChange(baseServings) },
-                colors = ButtonDefaults.buttonColors(containerColor = Blue, contentColor = Pink),
+                colors = ButtonDefaults.buttonColors(containerColor = ServingCyan, contentColor = Color.White),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
             ) { Text("Reset") }
         }
@@ -1443,16 +1482,21 @@ private fun ServingsAdjuster(
                 }
             },
             confirmButton = {
-                Button(onClick = {
-                    val v = input.toIntOrNull()?.coerceIn(1, 999) ?: baseServings
-                    onDesiredChange(v)
-                    open = false
-                }) { Text("Apply") }
+                OutlinedButton(
+                    onClick = {
+                        val v = input.toIntOrNull()?.coerceIn(1, 999) ?: baseServings
+                        onDesiredChange(v)
+                        input = v.toString()
+                        open = false
+                    },
+                    border = BorderStroke(1.dp, Pink),
+                    colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Pink)
+                ) { Text("Apply") }
             },
             dismissButton = {
                 Button(
                     onClick = { open = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = Pink, contentColor = Blue)
+                    colors = ButtonDefaults.buttonColors(containerColor = Pink, contentColor = Color.White)
                 ) { Text("Cancel") }
             },
             containerColor = Peach
@@ -1667,6 +1711,7 @@ fun RecipeDetails(
                         WoopperPrimaryButton(
                             text = "Set Timer",
                             onClick = { showTimerSheet = true },
+                            contentColor = Pink,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -1702,6 +1747,7 @@ private fun WoopperFormScaffold(
     saveEnabled: Boolean,
     snackbarHostState: SnackbarHostState,
     bottomBar: @Composable (() -> Unit)? = null,
+    showSaveIcon: Boolean = true,
     content: @Composable (PaddingValues) -> Unit
 ) {
     androidx.compose.material3.Scaffold(
@@ -1728,12 +1774,16 @@ private fun WoopperFormScaffold(
                         Text(title, fontSize = 36.sp, fontWeight = FontWeight.Black, color = LightPink)
                     }
 
-                    IconButton(onClick = onSave) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = "Save",
-                            tint = if (saveEnabled) Color(0xFF111827) else Color(0xFF111827).copy(alpha = 0.35f)
-                        )
+                    if (showSaveIcon) {
+                        IconButton(onClick = onSave) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = "Save",
+                                tint = if (saveEnabled) Blue else Blue.copy(alpha = 0.35f)
+                            )
+                        }
+                    } else {
+                        Spacer(Modifier.size(48.dp))
                     }
                 }
             }
@@ -1745,73 +1795,8 @@ private fun WoopperFormScaffold(
 }
 
 
-@Composable
-private fun WoopperSectionCard(
-    title: String,
-    modifier: Modifier = Modifier,
-    trailing: (@Composable () -> Unit)? = null,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, Pink),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = title,
-                    style = androidx.compose.material3.MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF111827),
-                    modifier = Modifier.weight(1f)
-                )
-                trailing?.invoke()
-            }
-            content()
-        }
-    }
-}
 
-@Composable
-private fun WoopperQuickMetaRow(
-    totalTime: String,
-    onTotalTime: (String) -> Unit,
-    difficulty: String,
-    onDifficulty: (String) -> Unit,
-    servingSize: String,
-    onServingSize: (String) -> Unit
-) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        DigitsOnlyField(
-            value = totalTime,
-            onValueChange = onTotalTime,
-            label = { Text("Total (min)") },
-            modifier = Modifier.weight(1f),
-            maxDigits = 4,
-            min = 0
-        )
-        DigitsOnlyField(
-            value = difficulty,
-            onValueChange = onDifficulty,
-            label = { Text("Diff 1–5") },
-            modifier = Modifier.weight(1f),
-            maxDigits = 1,
-            min = 1,
-            max = 5
-        )
-        DigitsOnlyField(
-            value = servingSize,
-            onValueChange = onServingSize,
-            label = { Text("Servings") },
-            modifier = Modifier.weight(1f),
-            maxDigits = 3,
-            min = 1
-        )
-    }
-}
+
 
 @Composable
 fun CreateRecipeScreen(
@@ -2059,13 +2044,14 @@ fun CreateRecipeScreen(
             }
 
             item {
-                Button(
+                OutlinedButton(
                     onClick = {
-                        if (!validate()) return@Button
+                        if (!validate()) return@OutlinedButton
                         scope.launch { doSave() }
                     },
                     modifier = Modifier.fillMaxWidth().height(54.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Blue, contentColor = Color.White),
+                    border = BorderStroke(1.dp, Pink),
+                    colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Pink),
                     shape = RoundedCornerShape(16.dp),
                     enabled = true
                 ) { Text("Save Recipe", fontWeight = FontWeight.Black) }
@@ -2162,19 +2148,19 @@ fun EditRecipeScreen(
             title = { Text("Delete recipe?", fontWeight = FontWeight.Black, color = Color(0xFF111827)) },
             text = { Text("This will permanently delete the recipe. This cannot be undone.", color = Color(0xFF111827)) },
             confirmButton = {
-                Button(
+                OutlinedButton(
                     onClick = {
                         showDeleteConfirm = false
                         viewModel.delete(onDeleted)
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Pink, contentColor = Color.White)
+                    border = BorderStroke(1.dp, Pink),
+                    colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Pink)
                 ) { Text("Delete", fontWeight = FontWeight.Black) }
             },
             dismissButton = {
-                OutlinedButton(
+                Button(
                     onClick = { showDeleteConfirm = false },
-                    border = BorderStroke(1.dp, Pink),
-                    colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Pink)
+                    colors = ButtonDefaults.buttonColors(containerColor = Pink, contentColor = Color.White)
                 ) { Text("Cancel", fontWeight = FontWeight.Black) }
             }
         )
@@ -2189,6 +2175,7 @@ fun EditRecipeScreen(
         },
         saveEnabled = ui.name.trim().isNotBlank() && ui.mealType.isNotBlank(),
         snackbarHostState = snackbarHostState,
+        showSaveIcon = false,
         bottomBar = {
             Surface(color = LightPink.copy(alpha = 0.55f), tonalElevation = 2.dp) {
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -2206,21 +2193,21 @@ fun EditRecipeScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        OutlinedButton(
+                        Button(
                             onClick = { showDeleteConfirm = true },
                             modifier = Modifier.weight(1f).height(54.dp),
-                            border = BorderStroke(1.dp, Pink),
-                            colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Pink),
+                            colors = ButtonDefaults.buttonColors(containerColor = Pink, contentColor = Color.White),
                             shape = RoundedCornerShape(16.dp)
                         ) { Text("Delete", fontWeight = FontWeight.Black) }
 
-                        Button(
+                        OutlinedButton(
                             onClick = {
-                                if (!validate()) return@Button
+                                if (!validate()) return@OutlinedButton
                                 scope.launch { doSave() }
                             },
                             modifier = Modifier.weight(1f).height(54.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Blue, contentColor = Color.White),
+                            border = BorderStroke(1.dp, Pink),
+                            colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White, contentColor = Pink),
                             shape = RoundedCornerShape(16.dp),
                             enabled = true
                         ) { Text("Save", fontWeight = FontWeight.Black) }
