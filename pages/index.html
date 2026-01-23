@@ -3,31 +3,32 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>CCL 3 Documentation — wopper</title>
+    <title>wopper</title>
     <link rel="stylesheet" href="style.css" />
+    <link rel="icon" type="image/png" href="images/woop.png" />
   </head>
 
   <body>
     <header class="topbar">
       <div class="topbar__inner">
         <a class="brand" href="#top" aria-label="Go to top">
-          <span class="brand__logo">w</span>
+          <img src="images/woop.png" alt="wopper logo" class="brand__logo" />
           <span class="brand__text">wopper</span>
         </a>
 
         <nav class="nav" aria-label="Page navigation">
           <a class="nav__link" href="#concept">Concept</a>
           <a class="nav__link" href="#development">Development</a>
-          <a class="nav__link" href="#usability">Usability</a>
+          <a class="nav__link" href="#usability">Usability Tests</a>
           <a class="nav__link" href="#reflection">Reflection</a>
         </nav>
       </div>
     </header>
 
-    <main id="top" class="page">
-      <section class="hero">
-        <div class="hero__card">
-          <div class="hero__titleWrap" aria-label="wopper title">
+    <main id="top" class="page" >
+      <section class="hero" style="text-align: center;">
+        <div class="hero__card" >
+          <div class="hero__titleWrap" aria-label="wopper title" >
             <div class="hero__shadow hero__shadow--1">wopper</div>
             <div class="hero__shadow hero__shadow--2">wopper</div>
             <div class="hero__shadow hero__shadow--3">wopper</div>
@@ -38,13 +39,12 @@
           <p class="hero__subtitle">CCL 3 Documentation</p>
 
           <p class="hero__desc">
-            An app for storing, choosing, and timing recipes.
+            The Essential Cook Book
           </p>
 
-          <div class="hero__meta">
+          <div class="hero__meta" style="display: flex; justify-content: center;">
             <div class="pill">
-              <span class="pill__label">By</span>
-              <span class="pill__value"><b>Andras Lukats</b> &nbsp;·&nbsp; <b>Lilia Dimitrova</b></span>
+              <span class="pill__label">By Andras Lukats & Lilia Dimitrova</span>
             </div>
           </div>
         </div>
@@ -53,9 +53,6 @@
       <section id="concept" class="section">
         <div class="section__head">
           <h2 class="section__title">Concept</h2>
-          <p class="section__lead">
-            The original idea, goals, and prototype references.
-          </p>
         </div>
 
         <div class="card">
@@ -68,6 +65,16 @@
             Figma prototype:
             <a class="link" href="https://www.figma.com/design/ziBLPJjH3FKjL8xJBJMMjP/wopper?node-id=6-10&t=5dKD8waxMmZwhLtA-1" target="_blank" rel="noreferrer">Figma</a>
           </p>
+                    <p class="card__text">
+            APK file:
+            <a class="link" href="https://git.nwt.fhstp.ac.at/cc241072/ccl3-ws2025/-/blob/master/app-debug.apk" target="_blank" rel="noreferrer">Go to APK</a>
+          </p>
+                              <p class="card__text">
+            APK file in Git Releases:
+            <a class="link" href="https://git.nwt.fhstp.ac.at/cc241072/ccl3-ws2025/-/releases/v1.0.0" target="_blank" rel="noreferrer">Git Releases APK</a>
+          </p>
+
+
 
           <div class="divider"></div>
 
@@ -75,7 +82,7 @@
           <ul class="list">
             <li><b>Problem:</b> recipes are spread across notes, screenshots, and links.</li>
             <li><b>Goal:</b> keep recipes in one place and make cooking easier with timers.</li>
-            <li><b>Main flows:</b> browse → search/filter → open recipe → adjust servings → follow steps with timers.</li>
+            <li><b>Main flows:</b> browse -> search/filter -> open recipe -> adjust servings -> follow steps with timers.</li>
             <li><b>Target users:</b> people who cook at home and want quick access to saved recipes.</li>
           </ul>
         </div>
@@ -106,25 +113,19 @@
           <h3 class="card__title">Code & APK</h3>
           <p class="card__text">
             Repository link:
-            <a class="link" href="REPLACE_WITH_YOUR_REPO_URL" target="_blank" rel="noreferrer">REPLACE_WITH_YOUR_REPO_URL</a>
+            <a class="link" href="https://git.nwt.fhstp.ac.at/cc241072/ccl3-ws2025" target="_blank" rel="noreferrer">Link to GitLab Repository</a>
           </p>
           <p class="card__text">
             APK file:
-            <a class="link" href="wopper.apk" download>Download wopper.apk</a>
-            <span class="muted">(replace the filename if needed)</span>
+            <a class="link" href="https://git.nwt.fhstp.ac.at/cc241072/ccl3-ws2025" download>Download wopper APK</a>
           </p>
 
           <div class="divider"></div>
 
           <h3 class="card__title">Database (SQLite)</h3>
           <p class="card__text">
-            The app uses SQLite to store recipes, ingredients, and instructions.
-            Add your ERD image next to this page (for example: <code>erd.png</code>), then include it here:
-          </p>
-          <p class="card__text">
-            ERD:
-            <a class="link" href="erd.png" target="_blank" rel="noreferrer">Open erd.png</a>
-            <span class="muted">(add the file to your pages folder)</span>
+            The app uses SQLite to store recipes, ingredients, and instructions. Here you can see the ERD of our database: 
+            <img src="images/Screenshot 2026-01-22 164334.png" alt="Entity Relationship Diagram" style="max-width: 100%; height: auto; margin-top: 10px;" />
           </p>
 
           <div class="divider"></div>
@@ -160,52 +161,46 @@
         <div class="card">
           <h3 class="card__title">Test plan</h3>
           <p class="card__text">
-            Link to usability test plan:
-            <a class="link" href="REPLACE_WITH_TEST_PLAN_URL" target="_blank" rel="noreferrer">REPLACE_WITH_TEST_PLAN_URL</a>
+            All of our usability tests were conducted as follows:
           </p>
+                    <ul class="list">
+            <li>Participants were asked to fill out a consent form</li>
+            <li>Then they fill out a demographic questionnaire</li>
+            <li>After that, they were introduced to our app and met with 4 tasks to complete</li>
+            <li>After each task, they were asked to answer an SEQ</li>
+            <li>Finally, they were asked to fill out a final questionnaire with SUS and open-ended questions</li>
+          </ul>
+          <p class="card__text">
+            The following setup was applied:
+          </p>
+                              <ul class="list">
+            <li>Andras walked the participants through the tasks</li>
+            <li>Lilia took notes on the observation</li>
+            <li>The forms for the test were a Google Form</li>
+          </ul>
 
           <p class="card__text"><b>Tasks:</b></p>
           <ul class="list">
-            <li>Create a recipe with ingredients and steps.</li>
-            <li>Find a recipe using search and category filter.</li>
-            <li>Adjust servings and check ingredient scaling.</li>
-            <li>Start a timer from a step and clear it.</li>
+            <li>Create a recipe</li>
+            <li>Find a recipe</li>
+            <li>Edit a recipe (often specified to edit ingredients or serving sizes)</li>
+            <li>Delete a recipe</li>
           </ul>
 
           <div class="divider"></div>
 
           <h3 class="card__title">Participants</h3>
-          <p class="card__text"><b>Number of test subjects:</b> REPLACE_NUMBER</p>
-          <p class="card__text"><b>Devices:</b> REPLACE_DEVICE_INFO</p>
-          <p class="card__text"><b>Session length:</b> REPLACE_DURATION</p>
+          <p class="card__text"><b>Number of test subjects:</b> 10</p>
+          <p class="card__text"><b>Devices:</b> Lilia's Android phone</p>
+          <p class="card__text"><b>Session length:</b> about 15-20 minutes each</p>
+          <p class="card__text"><b>Average SUS score:</b> 94</p>
 
           <div class="divider"></div>
 
           <h3 class="card__title">Results summary</h3>
           <p class="card__text">
-            REPLACE_WITH_A_SHORT_SUMMARY_OF_RESULTS (what went well, what was confusing, overall impression).
+            We got a lot of valuable feedback from our testers. More specifically, we were told that some buttons did not look clickable and the ingredients addition menu was not intuitive enough. We fixed these issues and did more user tests to verify the success of the changes. Also, we were given ideas whicch we implemented such as collapsable menus, and also some which we are yet hoping to implement.
           </p>
-
-          <div class="divider"></div>
-
-          <h3 class="card__title">Most relevant feedback (excerpts)</h3>
-          <ul class="list">
-            <li>“REPLACE_WITH_QUOTE_1”</li>
-            <li>“REPLACE_WITH_QUOTE_2”</li>
-            <li>“REPLACE_WITH_QUOTE_3”</li>
-          </ul>
-
-          <div class="divider"></div>
-
-          <h3 class="card__title">Updates made after feedback</h3>
-          <p class="card__text muted">
-            If no changes were made, say it clearly and explain why.
-          </p>
-          <ul class="list">
-            <li>REPLACE_CHANGE_1</li>
-            <li>REPLACE_CHANGE_2</li>
-            <li>REPLACE_CHANGE_3</li>
-          </ul>
         </div>
       </section>
 
@@ -219,18 +214,24 @@
 
         <div class="card">
           <h3 class="card__title">Andras Lukats</h3>
-          <p class="card__text"><b>Challenges:</b> REPLACE</p>
-          <p class="card__text"><b>Contributions:</b> REPLACE</p>
-          <p class="card__text"><b>What I learned:</b> REPLACE</p>
-          <p class="card__text"><b>Future improvements:</b> REPLACE</p>
+          <p class="card__text"><b>Challenges:</b> smth smth</p>
+          <p class="card__text"><b>Contributions:</b> smth</p>
+          <p class="card__text"><b>What I learned:</b> smth</p>
+          <p class="card__text"><b>Future improvements:</b> smth</p>
 
           <div class="divider"></div>
 
           <h3 class="card__title">Lilia Dimitrova</h3>
-          <p class="card__text"><b>Challenges:</b> REPLACE</p>
-          <p class="card__text"><b>Contributions:</b> REPLACE</p>
-          <p class="card__text"><b>What I learned:</b> REPLACE</p>
-          <p class="card__text"><b>Future improvements:</b> REPLACE</p>
+          <p class="card__text"><b>Challenges:</b> smth</p>
+          <p class="card__text"><b>Contributions:</b> smth</p>
+          <p class="card__text"><b>What I learned:</b> smth</p>
+          <p class="card__text"><b>Future improvements:</b> Nahhh our app is perfecct</p>
+
+                    <h2 class="section__title">End Result</h2>
+                    <div>
+          <img src="images/Screenshot 2026-01-23 011710.png" alt="Final App Screenshots" style="max-width: 49%; height: auto; margin-top: 10px; border-radius: 1em;" />
+          <img src="images/Screenshot 2026-01-23 012039.png" alt="Final App Screenshots 2" style="max-width: 49%; height: auto; margin-top: 10px; border-radius: 1em;" />
+                    </div>
         </div>
       </section>
 

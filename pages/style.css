@@ -90,7 +90,8 @@ code {
 .brand__text {
   font-weight: 1000;
   letter-spacing: 0.2px;
-  font-size: 18px;
+  font-size: 25px;
+  color: var(--pink)
 }
 
 .nav {
