@@ -1,11 +1,10 @@
 pages:
   stage: deploy
   script:
-    - rm -rf public
     - mkdir -p public
     - cp -R pages/. public/
   artifacts:
     paths:
       - public
-  rules:
-    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  only:
+    - main
