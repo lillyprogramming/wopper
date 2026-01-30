@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-@Suppress("unused") // pauseTimer, resumeTimer, dismissCompletionDialog may be used in future
+@Suppress("unused")
 
 data class TimerState(
     val minutes: Int = 0,
@@ -60,7 +60,6 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
                     if (state.isRunning && state.remainingTime > 0) {
                         val newRemainingTime = state.remainingTime - 1
                         if (newRemainingTime == 0) {
-                            // Start notification service with alarm
                             TimerService.startTimerNotification(getApplication())
                             state.copy(
                                 isRunning = false,
@@ -83,7 +82,6 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
         try {
             getApplication<Application>().unregisterReceiver(stopTimerReceiver)
         } catch (_: Exception) {
-            // Receiver not registered
         }
     }
 
@@ -134,7 +132,6 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun clearTimer() {
-        // Stop the notification service
         TimerService.stopTimerNotification(getApplication())
         _timerState.update {
             TimerState()
@@ -144,7 +141,6 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
 
     
     fun dismissCompletionDialogAndClear() {
-        // Stop the notification service
         TimerService.stopTimerNotification(getApplication())
         _timerState.update {
             TimerState()

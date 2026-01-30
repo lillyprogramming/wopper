@@ -65,14 +65,13 @@ class TimerService : Service() {
             val importance = NotificationManager.IMPORTANCE_HIGH
             val channel = NotificationChannel(CHANNEL_ID, name, importance).apply {
                 description = descriptionText
-                setSound(null, null) // Disable default notification sound
+                setSound(null, null)
             }
             notificationManager?.createNotificationChannel(channel)
         }
     }
 
     private fun createNotification(): Notification {
-        // Intent to open the app when notification is clicked
         val openAppIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
         }
@@ -82,8 +81,6 @@ class TimerService : Service() {
             openAppIntent,
             PendingIntent.FLAG_IMMUTABLE
         )
-
-        // Intent for the OK button to stop the timer
         val stopIntent = Intent(this, TimerService::class.java).apply {
             action = ACTION_STOP_TIMER
         }
@@ -114,8 +111,7 @@ class TimerService : Service() {
     private fun startAlarmSound() {
         try {
             mediaPlayer?.release()
-            
-            // Try multiple possible paths for the sound file
+
             val possiblePaths = listOf(
                 "themes/sounds/sound.mp3",
                 "sounds/sound.mp3"
@@ -135,20 +131,18 @@ class TimerService : Service() {
                         start()
                     }
                     assetFileDescriptor.close()
-                    break // Successfully loaded and playing
+                    break
                 } catch (_: Exception) {
-                    continue // Try next path
+                    continue
                 }
             }
         } catch (_: Exception) {
-            // Sound file not found or error playing
         }
     }
 
     private fun stopTimerAndService() {
         stopAlarmSound()
-        
-        // Broadcast to TimerViewModel to clear the timer
+
         val stopBroadcast = Intent(ACTION_STOP_TIMER)
         sendBroadcast(stopBroadcast)
         

@@ -689,8 +689,6 @@ fun WopperApp(
     val displayMinutes = if (timerState.remainingTime > 0) timerState.remainingTime / 60 else timerState.minutes
     val displaySeconds = if (timerState.remainingTime > 0) timerState.remainingTime % 60 else timerState.seconds
 
-    // Show completion dialog when timer reaches 0
-    // The notification service handles the alarm sound
     if (timerState.showCompletionDialog) {
         AlertDialog(
             onDismissRequest = {
@@ -709,7 +707,6 @@ fun WopperApp(
 
     Box(modifier = modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Timer bar at the top when running or paused
             if (timerState.remainingTime > 0) {
                 TimerTopBar(
                     minutes = displayMinutes,
