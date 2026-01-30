@@ -1,7 +1,14 @@
 package at.uastw.wopper.ui
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.Build
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import at.uastw.wopper.TimerService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,12 +23,34 @@ data class TimerState(
     val showCompletionDialog: Boolean = false
 )
 
-class TimerViewModel : ViewModel() {
+class TimerViewModel(application: Application) : AndroidViewModel(application) {
     private val _timerState = MutableStateFlow(TimerState())
     val timerState = _timerState.asStateFlow()
 
+    private val stopTimerReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == TimerService.ACTION_STOP_TIMER) {
+                clearTimer()
+            }
+        }
+    }
+
     init {
         startCountdown()
+        registerStopReceiver()
+    }
+
+    private fun registerStopReceiver() {
+        val filter = IntentFilter(TimerService.ACTION_STOP_TIMER)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getApplication<Application>().registerReceiver(
+                stopTimerReceiver,
+                filter,
+                Context.RECEIVER_NOT_EXPORTED
+            )
+        } else {
+            getApplication<Application>().registerReceiver(stopTimerReceiver, filter)
+        }
     }
 
     private fun startCountdown() {
@@ -32,6 +61,8 @@ class TimerViewModel : ViewModel() {
                     if (state.isRunning && state.remainingTime > 0) {
                         val newRemainingTime = state.remainingTime - 1
                         if (newRemainingTime == 0) {
+                            // Start notification service with alarm
+                            TimerService.startTimerNotification(getApplication())
                             state.copy(
                                 isRunning = false,
                                 remainingTime = 0,
@@ -45,6 +76,15 @@ class TimerViewModel : ViewModel() {
                     }
                 }
             }
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        try {
+            getApplication<Application>().unregisterReceiver(stopTimerReceiver)
+        } catch (_: Exception) {
+            // Receiver not registered
         }
     }
 
@@ -107,18 +147,24 @@ class TimerViewModel : ViewModel() {
     }
 
     fun clearTimer() {
+        // Stop the notification service
+        TimerService.stopTimerNotification(getApplication())
         _timerState.update {
             TimerState()
         }
     }
 
     fun dismissCompletionDialog() {
+        // Stop the notification service when dialog is dismissed
+        TimerService.stopTimerNotification(getApplication())
         _timerState.update { 
             it.copy(showCompletionDialog = false)
         }
     }
     
     fun dismissCompletionDialogAndClear() {
+        // Stop the notification service
+        TimerService.stopTimerNotification(getApplication())
         _timerState.update {
             TimerState()
         }

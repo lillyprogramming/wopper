@@ -25,7 +25,8 @@ object AppViewModelProvider {
             AddRecipeViewModel(app.recipeRepository)
         }
         initializer {
-            TimerViewModel()
+            val app = this[APPLICATION_KEY] as Wopper
+            TimerViewModel(app)
         }
     }
 }

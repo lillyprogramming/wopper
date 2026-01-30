@@ -1,6 +1,5 @@
 package at.uastw.wopper.ui
 
-import android.media.MediaPlayer
 import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -71,7 +70,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -690,97 +688,17 @@ fun WopperApp(
     val timerState by timerViewModel.timerState.collectAsStateWithLifecycle()
     val displayMinutes = if (timerState.remainingTime > 0) timerState.remainingTime / 60 else timerState.minutes
     val displaySeconds = if (timerState.remainingTime > 0) timerState.remainingTime % 60 else timerState.seconds
-    val context = LocalContext.current
-
-    // Store MediaPlayer reference
-    var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
-
-    // Play sound when dialog shows
-    LaunchedEffect(timerState.showCompletionDialog) {
-        if (timerState.showCompletionDialog) {
-            try {
-                // Release previous player if exists
-                mediaPlayer?.release()
-
-                // Try multiple possible paths and filenames
-                val possiblePaths = listOf(
-                    "themes/sounds/sound.mp3",
-                    "sounds/sound.mp3"
-                )
-
-                var player: MediaPlayer?
-                for (path in possiblePaths) {
-                    try {
-                        val assetFileDescriptor = context.assets.openFd(path)
-                        player = MediaPlayer().apply {
-                            setDataSource(
-                                assetFileDescriptor.fileDescriptor,
-                                assetFileDescriptor.startOffset,
-                                assetFileDescriptor.length
-                            )
-                            prepare()
-                            isLooping = true
-                        }
-                        assetFileDescriptor.close()
-                        mediaPlayer = player
-                        player.start()
-                        break // Successfully loaded and playing
-                    } catch (_: Exception) {
-                        // Try next path
-                        continue
-                    }
-                }
-            } catch (_: Exception) {
-                // Handle error - sound file might not be found
-                mediaPlayer = null
-            }
-        } else {
-            // Stop and release when dialog is dismissed
-            mediaPlayer?.apply {
-                if (isPlaying) {
-                    stop()
-                }
-                release()
-            }
-            mediaPlayer = null
-        }
-    }
-
-    // Cleanup MediaPlayer when composable is disposed
-    DisposableEffect(Unit) {
-        onDispose {
-            mediaPlayer?.apply {
-                if (isPlaying) {
-                    stop()
-                }
-                release()
-            }
-        }
-    }
 
     // Show completion dialog when timer reaches 0
+    // The notification service handles the alarm sound
     if (timerState.showCompletionDialog) {
         AlertDialog(
             onDismissRequest = {
-                mediaPlayer?.apply {
-                    if (isPlaying) {
-                        stop()
-                    }
-                    release()
-                }
-                mediaPlayer = null
                 timerViewModel.dismissCompletionDialogAndClear()
             },
             title = { Text("Time is up!") },
             confirmButton = {
                 Button(onClick = {
-                    mediaPlayer?.apply {
-                        if (isPlaying) {
-                            stop()
-                        }
-                        release()
-                    }
-                    mediaPlayer = null
                     timerViewModel.dismissCompletionDialogAndClear()
                 }) {
                     Text("OK")
