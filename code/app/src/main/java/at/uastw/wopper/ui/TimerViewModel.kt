@@ -5,7 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import android.os.Build
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import at.uastw.wopper.TimerService
@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+@Suppress("unused") // pauseTimer, resumeTimer, dismissCompletionDialog may be used in future
 
 data class TimerState(
     val minutes: Int = 0,
@@ -42,15 +44,12 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun registerStopReceiver() {
         val filter = IntentFilter(TimerService.ACTION_STOP_TIMER)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            getApplication<Application>().registerReceiver(
-                stopTimerReceiver,
-                filter,
-                Context.RECEIVER_NOT_EXPORTED
-            )
-        } else {
-            getApplication<Application>().registerReceiver(stopTimerReceiver, filter)
-        }
+        ContextCompat.registerReceiver(
+            getApplication(),
+            stopTimerReceiver,
+            filter,
+            ContextCompat.RECEIVER_NOT_EXPORTED
+        )
     }
 
     private fun startCountdown() {
@@ -122,19 +121,7 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun pauseTimer() {
-        _timerState.update { it.copy(isRunning = false) }
-    }
-
-    fun resumeTimer() {
-        _timerState.update { state ->
-            if (state.remainingTime > 0) {
-                state.copy(isRunning = true)
-            } else {
-                state
-            }
-        }
-    }
+    
 
     fun togglePauseResume() {
         _timerState.update { state ->
@@ -154,13 +141,7 @@ class TimerViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun dismissCompletionDialog() {
-        // Stop the notification service when dialog is dismissed
-        TimerService.stopTimerNotification(getApplication())
-        _timerState.update { 
-            it.copy(showCompletionDialog = false)
-        }
-    }
+
     
     fun dismissCompletionDialogAndClear() {
         // Stop the notification service
