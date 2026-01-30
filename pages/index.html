@@ -21,15 +21,14 @@
           <a class="nav__link" href="#development">Development</a>
           <a class="nav__link" href="#usability">Usability Tests</a>
           <a class="nav__link" href="#reflection">Reflection</a>
-          <a class="nav__link" href="#end-results">End Results</a>
         </nav>
       </div>
     </header>
 
-    <main id="top" class="page">
+    <main id="top" class="page" >
       <section class="hero" style="text-align: center;">
-        <div class="hero__card">
-          <div class="hero__titleWrap" aria-label="wopper title">
+        <div class="hero__card" >
+          <div class="hero__titleWrap" aria-label="wopper title" >
             <div class="hero__shadow hero__shadow--1">wopper</div>
             <div class="hero__shadow hero__shadow--2">wopper</div>
             <div class="hero__shadow hero__shadow--3">wopper</div>
@@ -66,14 +65,11 @@
             Figma prototype:
             <a class="link" href="https://www.figma.com/design/ziBLPJjH3FKjL8xJBJMMjP/wopper?node-id=6-10&t=5dKD8waxMmZwhLtA-1" target="_blank" rel="noreferrer">Figma</a>
           </p>
-          <p class="card__text">
+                    <p class="card__text">
             APK file:
             <a class="link" href="https://git.nwt.fhstp.ac.at/cc241072/ccl3-ws2025/-/blob/master/app-debug.apk" target="_blank" rel="noreferrer">Go to APK</a>
           </p>
-        <p class="card__text">
-            Final Presentation:
-            <a class="link" href="https://www.canva.com/design/DAG_J7G0-Js/orOOwbtDQxjXpphtEHrxXw/edit?utm_content=DAG_J7G0-Js&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton" target="_blank" rel="noreferrer">Canva Final</a>
-          </p>
+
           <div class="divider"></div>
 
           <h3 class="card__title">Concept summary</h3>
@@ -89,6 +85,9 @@
       <section id="development" class="section">
         <div class="section__head">
           <h2 class="section__title">Development</h2>
+          <p class="section__lead">
+            What we built, how it works, and deliverables.
+          </p>
         </div>
 
         <div class="card">
@@ -112,14 +111,14 @@
           </p>
           <p class="card__text">
             APK file:
-            <a class="link" href="https://git.nwt.fhstp.ac.at/cc241072/ccl3-ws2025/-/blob/master/app-debug.apk?ref_type=heads" download>Download wopper APK</a>
+            <a class="link" href="https://git.nwt.fhstp.ac.at/cc241072/ccl3-ws2025" download>Download wopper APK</a>
           </p>
 
           <div class="divider"></div>
 
           <h3 class="card__title">Database (SQLite)</h3>
           <p class="card__text">
-            The app uses SQLite to store recipes, ingredients, and instructions. Here you can see the ERD of our database:
+            The app uses SQLite to store recipes, ingredients, and instructions. Here you can see the ERD of our database: 
             <img src="images/Screenshot 2026-01-22 164334.png" alt="Entity Relationship Diagram" style="max-width: 100%; height: auto; margin-top: 10px;" />
           </p>
 
@@ -132,20 +131,33 @@
             <li>Timers support step-by-step execution and reduce context switching.</li>
             <li>Servings scaling supports flexible cooking for different group sizes.</li>
           </ul>
+
+          <div class="divider"></div>
+
+          <h3 class="card__title">What could be improved</h3>
+          <ul class="list">
+            <li>Improve ingredient amount parsing to support more formats.</li>
+            <li>More robust category storage (e.g., normalized tables instead of CSV).</li>
+            <li>Optional backup/export of recipes.</li>
+            <li>Small onboarding hints for filters and timers.</li>
+          </ul>
         </div>
       </section>
 
       <section id="usability" class="section">
         <div class="section__head">
           <h2 class="section__title">Usability test</h2>
+          <p class="section__lead">
+            Plan, participants, results summary, key feedback, and updates made.
+          </p>
         </div>
 
         <div class="card">
           <h3 class="card__title">Test plan</h3>
           <p class="card__text">
-            <b>All of our usability tests were conducted as follows:</b>
+            All of our usability tests were conducted as follows:
           </p>
-          <ul class="list">
+                    <ul class="list">
             <li>Participants were asked to fill out a consent form</li>
             <li>Then they fill out a demographic questionnaire</li>
             <li>After that, they were introduced to our app and met with 4 tasks to complete</li>
@@ -153,9 +165,9 @@
             <li>Finally, they were asked to fill out a final questionnaire with SUS and open-ended questions</li>
           </ul>
           <p class="card__text">
-           <b>The following setup was applied:</b> 
+            The following setup was applied:
           </p>
-          <ul class="list">
+                              <ul class="list">
             <li>Andras walked the participants through the tasks</li>
             <li>Lilia took notes on the observation</li>
             <li>The forms for the test were a Google Form</li>
@@ -181,22 +193,24 @@
 
           <h3 class="card__title">Results summary</h3>
           <p class="card__text">
-            We got a lot of valuable feedback from our testers. More specifically, we were told that some buttons did not look clickable and the ingredients addition menu was not intuitive enough. We fixed these issues and did more user tests to verify the success of the changes. Also, we were given ideas which we implemented such as collapsable menus, and also some which we are yet hoping to implement.
+            We got a lot of valuable feedback from our testers. More specifically, we were told that some buttons did not look clickable and the ingredients addition menu was not intuitive enough. We fixed these issues and did more user tests to verify the success of the changes. Also, we were given ideas whicch we implemented such as collapsable menus, and also some which we are yet hoping to implement.
           </p>
-          <img src="images/Screenshot 2026-01-30 163938.png" alt="SUS Results" style="max-width: 100%; height: auto; margin-top: 10px;" />
         </div>
       </section>
 
       <section id="reflection" class="section">
         <div class="section__head">
           <h2 class="section__title">Reflection</h2>
+          <p class="section__lead">
+            A reflection from each team member: challenges, contributions, and future work.
+          </p>
         </div>
 
         <div class="card">
           <h3 class="card__title">Andras Lukats</h3>
           <p class="card__text"><b>Challenges:</b> The UI structure in Android Studio, and cooperative work with Git.</p>
           <p class="card__text"><b>Contributions:</b> Most of the design and timer implementation.</p>
-          <p class="card__text"><b>What I learned:</b> Frontend structure, and design implementation.</p>
+          <p class="card__text"><b>What I learned:</b>  Frontend structure, and design implementation.</p>
           <p class="card__text"><b>Future improvements:</b> More easily understandable icons and buttons for the users</p>
 
           <div class="divider"></div>
@@ -206,19 +220,12 @@
           <p class="card__text"><b>Contributions:</b> I worked on the database and most of the functional code (that is without the design or anything like that). I also set up GitPages.</p>
           <p class="card__text"><b>What I learned:</b> I learned a lot of new things through this project and I'm overall happy with the way it ended up being. I feel a lot more confident in my ability to work with Git, Android Studio, and also in the sphere of app development.</p>
           <p class="card__text"><b>Future improvements:</b> There are a couple of things I would've liked us to add in the future, such as a savability feature for homepage column collapse states, also the option to print/export and import recipes CSVs and pdf files.</p>
-        </div>
-      </section>
 
-      <section id="end-results" class="section">
-        <div class="section__head">
-          <h2 class="section__title">End Results</h2>
-        </div>
-
-        <div class="card">
-          <div>
-            <img src="images/Screenshot 2026-01-23 011710.png" alt="Final App Screenshots" style="max-width: 49%; height: auto; margin-top: 10px; border-radius: 1em;" />
-            <img src="images/Screenshot 2026-01-23 012039.png" alt="Final App Screenshots 2" style="max-width: 49%; height: auto; margin-top: 10px; border-radius: 1em;" />
-          </div>
+                    <h2 class="section__title">End Result</h2>
+                    <div>
+          <img src="images/Screenshot 2026-01-23 011710.png" alt="Final App Screenshots" style="max-width: 49%; height: auto; margin-top: 10px; border-radius: 1em;" />
+          <img src="images/Screenshot 2026-01-23 012039.png" alt="Final App Screenshots 2" style="max-width: 49%; height: auto; margin-top: 10px; border-radius: 1em;" />
+                    </div>
         </div>
       </section>
 

@@ -50,8 +50,7 @@ code {
   position: sticky;
   top: 0;
   z-index: 50;
-  background: rgba(176, 208, 211, 0.72);
-  backdrop-filter: blur(14px);
+  background: rgba(176, 208, 211, 1);
   border-bottom: 1px solid rgba(192, 132, 151, 0.25);
 }
 
@@ -103,8 +102,8 @@ code {
 
 .nav__link {
   text-decoration: none;
-  font-weight: 900;
-  font-size: 14px;
+  font-weight: 600;
+  font-size: 16px;
   color: rgba(17, 24, 39, 0.86);
   padding: 10px 12px;
   border-radius: 999px;
@@ -252,7 +251,6 @@ code {
 .card__text {
   margin: 0 0 10px;
   color: rgba(17, 24, 39, 0.86);
-  font-weight: 650;
   line-height: 1.55;
 }
 
@@ -264,7 +262,6 @@ code {
   margin: 0;
   padding-left: 18px;
   color: rgba(17, 24, 39, 0.86);
-  font-weight: 650;
   line-height: 1.65;
 }
 
